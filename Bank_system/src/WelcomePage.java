@@ -17,12 +17,12 @@ public class WelcomePage extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setResizable(false);
         
-        // Main panel
+     
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(null);
         mainPanel.setBackground(DARK_BLUE);
         
-        // Title panel
+       
         JPanel titlePanel = new JPanel();
         titlePanel.setBounds(0, 30, 600, 60);
         titlePanel.setBackground(DARK_BLUE);
@@ -32,7 +32,7 @@ public class WelcomePage extends JFrame implements ActionListener {
         titlePanel.add(titleLabel);
         mainPanel.add(titlePanel);
         
-        // Subtitle
+      
         JLabel subtitleLabel = new JLabel("Secure • Reliable • Convenient");
         subtitleLabel.setBounds(0, 90, 600, 30);
         subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
@@ -40,7 +40,7 @@ public class WelcomePage extends JFrame implements ActionListener {
         subtitleLabel.setHorizontalAlignment(JLabel.CENTER);
         mainPanel.add(subtitleLabel);
         
-        // Features panel
+      
         JPanel featuresPanel = new JPanel();
         featuresPanel.setBounds(50, 140, 500, 50);
         featuresPanel.setLayout(new GridLayout(1, 1, 0, 0));
@@ -60,13 +60,13 @@ public class WelcomePage extends JFrame implements ActionListener {
         
         mainPanel.add(featuresPanel);
         
-        // Button panel
+    
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBounds(50, 210, 500, 50);
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonPanel.setBackground(DARK_BLUE);
         
-        // Login button
+      
         JButton loginButton = new JButton("Login");
         loginButton.setPreferredSize(new Dimension(150, 40));
         loginButton.setBackground(ORANGE);
@@ -80,7 +80,7 @@ public class WelcomePage extends JFrame implements ActionListener {
         });
         buttonPanel.add(loginButton);
         
-        // Sign Up button
+       
         JButton signUpButton = new JButton("Sign Up");
         signUpButton.setPreferredSize(new Dimension(150, 40));
         signUpButton.setBackground(LIGHT_GRAY);
