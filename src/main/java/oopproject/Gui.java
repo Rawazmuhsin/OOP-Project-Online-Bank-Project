@@ -1,7 +1,10 @@
+package oopproject;
+
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.border.*;
+
 
 public class Gui extends JFrame implements ActionListener {
 
