@@ -1,102 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" 
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>oopproject</groupId>
-  <artifactId>root</artifactId>
+  <groupId>bank.pr</groupId>
+  <artifactId>main</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>root</name>
+  <name>main</name>
   <url>http://www.example.com</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <dependencies>
+
+
+  <dependency>
+    <groupId>org.mindrot</groupId>
+    <artifactId>jbcrypt</artifactId>
+    <version>0.4</version>
+</dependency>
+    <!-- JUnit for testing -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+
     <!-- MySQL Connector -->
     <dependency>
       <groupId>mysql</groupId>
       <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.30</version>
+      <version>8.0.33</version>
     </dependency>
 
-    <!-- HikariCP (Optional but Recommended for Connection Pooling) -->
-    <dependency>
-      <groupId>com.zaxxer</groupId>
-      <artifactId>HikariCP</artifactId>
-      <version>5.1.0</version>
-    </dependency>
-
-    <!-- JUnit for Testing -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.2</version>
-      <scope>test</scope>
-    </dependency>
+    <!-- Swing GUI (Included in Java SE) -->
+    <!-- No additional dependency needed, as Swing is part of Java Standard Edition -->
   </dependencies>
 
   <build>
     <pluginManagement>
       <plugins>
-        <!-- Clean Plugin -->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <version>3.1.0</version>
         </plugin>
-
-        <!-- Resources Plugin -->
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
           <version>3.0.2</version>
         </plugin>
-
-        <!-- Compiler Plugin (Java 23) -->
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.0</version>
-          <configuration>
-            <release>23</release>
-          </configuration>
         </plugin>
-
-        <!-- Surefire Plugin (for Running Tests) -->
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.22.1</version>
         </plugin>
-
-        <!-- Jar Plugin (to Package the Project) -->
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
         </plugin>
-
-        <!-- Install Plugin -->
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
           <version>2.5.2</version>
         </plugin>
-
-        <!-- Deploy Plugin -->
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <version>2.8.2</version>
         </plugin>
-
-        <!-- Site Plugin -->
         <plugin>
           <artifactId>maven-site-plugin</artifactId>
           <version>3.7.1</version>
         </plugin>
-
-        <!-- Project Info Reports Plugin -->
         <plugin>
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.0.0</version>
