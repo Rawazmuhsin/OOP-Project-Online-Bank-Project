@@ -34,35 +34,38 @@ class EmailVerificationPage extends JFrame {
         getContentPane().setBackground(new Color(30, 30, 30));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new java.awt.Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new java.awt.Insets(10, 10, 10, 10); //add padding 
+        gbc.fill = GridBagConstraints.HORIZONTAL; //if needed
 
         JLabel titleLabel = new JLabel("Enter Your Email", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setForeground(Color.WHITE);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
+        gbc.gridx = 0; // set Fisrt colum
+        gbc.gridy = 0; // set first Row
+        gbc.gridwidth = 2; // span 2 colums
         add(titleLabel, gbc);
 
         emailField = new JTextField(20);
-        gbc.gridy = 1;
-        gbc.gridwidth = 2;
+        gbc.gridy = 1; // set second row means 
+        gbc.gridwidth = 2; // span 2 colums
         add(emailField, gbc);
 
         JButton nextButton = new JButton("Next");
         nextButton.setBackground(Color.ORANGE);
         nextButton.setForeground(Color.WHITE);
-        gbc.gridy = 2;
+        gbc.gridy = 2; // set in third rows
         gbc.gridwidth = 1;
         add(nextButton, gbc);
 
         nextButton.addActionListener(e -> {
             userEmail = emailField.getText().trim();
+            // dlnia bunawa la prkrdnawa email feild
             if (!userEmail.isEmpty()) {
-                if (emailExists(userEmail)) {
+                // dlnia bunawa la habune email
+                if (emailExists(userEmail))
+                 {
                     new VerificationCodePage(userEmail);
-                    dispose();
+                    dispose(); 
                 } else {
                     JOptionPane.showMessageDialog(this, "Email not found! Please enter a valid email.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
@@ -74,7 +77,7 @@ class EmailVerificationPage extends JFrame {
         JButton backButton = new JButton("Back");
         backButton.setBackground(Color.RED);
         backButton.setForeground(Color.WHITE);
-        gbc.gridy = 3;
+        gbc.gridy = 3;// set in forth row
         gbc.gridwidth = 1;
         add(backButton, gbc);
 
@@ -90,6 +93,7 @@ class EmailVerificationPage extends JFrame {
         return userEmail;
     }
 
+    // method to checking email
     private boolean emailExists(String email) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "SELECT 1 FROM accounts WHERE email = ?";
@@ -104,6 +108,7 @@ class EmailVerificationPage extends JFrame {
         }
     }
 }
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class VerificationCodePage extends JFrame {
     private JTextField codeField;
@@ -153,6 +158,7 @@ class VerificationCodePage extends JFrame {
         setVisible(true);
     }
 }
+//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class ResetPasswordPage extends JFrame {
     private JPasswordField newPasswordField, confirmNewPasswordField;
@@ -190,7 +196,9 @@ class ResetPasswordPage extends JFrame {
         resetButton.addActionListener(e -> {
             String newPassword = new String(newPasswordField.getPassword());
             String confirmPassword = new String(confirmNewPasswordField.getPassword());
+            // dlniabunawa laway new password lagal confirm password waku yaka
             if (newPassword.equals(confirmPassword)) {
+                //database condition
                 if (updatePassword(userEmail, newPassword)) {
                     JOptionPane.showMessageDialog(null, "Password Reset Successful!");
                     new LoginApp();
@@ -224,7 +232,7 @@ class ResetPasswordPage extends JFrame {
             stmt.setString(1, newPassword); // Hash this for security in production
             stmt.setString(2, email);
 
-            int rowsUpdated = stmt.executeUpdate();
+            int rowsUpdated = stmt.executeUpdate();//store the number of user update
             return rowsUpdated > 0;
         } catch (Exception e) {
             e.printStackTrace();

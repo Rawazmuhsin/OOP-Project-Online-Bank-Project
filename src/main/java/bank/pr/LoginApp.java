@@ -75,7 +75,7 @@ public class LoginApp extends JFrame {
             String email = emailField.getText();
             String password = new String(passwordField.getPassword());
 
-            if (authenticateUser(email, password)) {
+            if (UserCase(email, password)) {
                 JOptionPane.showMessageDialog(null, "Login successful!");
                 
                 // Open HomePage and pass user email
@@ -106,19 +106,21 @@ public class LoginApp extends JFrame {
             dispose();
         });
         add(backButton);
+        
 
         setVisible(true);
     }
 
-    // Authenticate user by checking the email and password
-    private boolean authenticateUser(String email, String password) {
+
+    //check  Email and Password
+    private boolean UserCase(String email, String password) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "SELECT * FROM accounts WHERE email = ? AND password = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, email);
             stmt.setString(2, password);
             ResultSet rs = stmt.executeQuery();
-            return rs.next(); // Returns true if a matching record is found
+            return rs.next(); // Returns true if a found
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Database error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);

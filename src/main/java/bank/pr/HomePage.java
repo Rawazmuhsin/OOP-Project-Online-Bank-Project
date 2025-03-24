@@ -55,7 +55,7 @@ public class HomePage extends JFrame {
         buttonPanel.setBackground(new Color(30, 30, 30));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        buttonPanel.add(createStyledButton("Deposit", "⬆", e -> deposit()));
+        buttonPanel.add(createStyledButton("Deposit", "⬆", e -> deposit()));// actionakan jare drust nakrawn
         buttonPanel.add(createStyledButton("Withdraw", "⬇", e -> withdraw()));
         buttonPanel.add(createStyledButton("Transfer", "⇄", e -> transfer()));
         buttonPanel.add(createStyledButton("Transaction History", "📜", e -> viewTransactionHistory(userEmail)));
