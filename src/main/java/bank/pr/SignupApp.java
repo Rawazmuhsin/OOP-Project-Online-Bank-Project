@@ -23,7 +23,7 @@ public class SignupApp extends JFrame {
 
     public SignupApp() {
         setTitle("Sign Up");
-        setSize(450, 400);
+        setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // Center the window
         setLayout(new GridBagLayout());
@@ -44,55 +44,58 @@ public class SignupApp extends JFrame {
 
         gbc.gridwidth = 1;
 
-        // Name Field
         JLabel nameLabel = new JLabel("Full Name:");
         nameLabel.setForeground(Color.WHITE);
         gbc.gridx = 0;
         gbc.gridy = 1;
+        gbc.ipadx = 100;
         add(nameLabel, gbc);
 
         nameField = new JTextField();
         gbc.gridx = 1;
         gbc.gridy = 1;
+        gbc.ipadx = 200;
         add(nameField, gbc);
 
-        // Email Field
         JLabel emailLabel = new JLabel("Email:");
         emailLabel.setForeground(Color.WHITE);
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.ipadx = 100;
         add(emailLabel, gbc);
 
         emailField = new JTextField();
         gbc.gridx = 1;
         gbc.gridy = 2;
+        gbc.ipadx = 200;
         add(emailField, gbc);
 
-        // Password Field
         JLabel passwordLabel = new JLabel("Password:");
         passwordLabel.setForeground(Color.WHITE);
         gbc.gridx = 0;
         gbc.gridy = 3;
+        gbc.ipadx = 100;
         add(passwordLabel, gbc);
 
         passwordField = new JPasswordField();
         gbc.gridx = 1;
         gbc.gridy = 3;
+        gbc.ipadx = 200;
         add(passwordField, gbc);
 
-        // Confirm Password Field
         JLabel confirmPasswordLabel = new JLabel("Confirm Password:");
         confirmPasswordLabel.setForeground(Color.WHITE);
         gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.ipadx = 100;
         add(confirmPasswordLabel, gbc);
 
         confirmPasswordField = new JPasswordField();
         gbc.gridx = 1;
         gbc.gridy = 4;
+        gbc.ipadx = 200;
         add(confirmPasswordField, gbc);
 
-        // Sign-Up Button
         signupButton = new JButton("Sign Up");
         signupButton.setBackground(Color.ORANGE);
         signupButton.setForeground(Color.BLACK);
@@ -101,9 +104,21 @@ public class SignupApp extends JFrame {
         gbc.gridwidth = 2;
         gbc.gridx = 0;
         gbc.gridy = 5;
+        gbc.ipadx = 0;
         add(signupButton, gbc);
 
         signupButton.addActionListener(this::handleSignup);
+
+        JButton backButton = new JButton("Back to Login");
+        backButton.setBackground(Color.GRAY);
+        backButton.setForeground(Color.WHITE);
+        gbc.gridy = 6;
+        add(backButton, gbc);
+
+        backButton.addActionListener(e -> {
+            new LoginApp();
+            dispose();
+        });
 
         setVisible(true);
     }
@@ -149,7 +164,7 @@ public class SignupApp extends JFrame {
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, name);
             stmt.setString(2, email);
-            stmt.setString(3, password); // Hash this for security
+            stmt.setString(3, password); 
 
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;

@@ -13,7 +13,7 @@ public class HomeScreen extends JFrame {
 
     public HomeScreen() {
         setTitle("Online Banking");
-        setSize(800, 500);
+        setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(null);
         getContentPane().setBackground(new Color(30, 30, 30));
