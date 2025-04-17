@@ -79,8 +79,8 @@ public class Deposite extends JFrame {
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
         methodPanel.setOpaque(false);
 
-        JRadioButton bankTransfer = new JRadioButton();
-        JRadioButton card = new JRadioButton();
+        JRadioButton bankTransfer = new JRadioButton("Bank Transfer\n(2–3 business days)");
+        JRadioButton card = new JRadioButton("Credit/Debit Card\n(Instant deposit)");
 
         ButtonGroup methodGroup = new ButtonGroup();
         methodGroup.add(bankTransfer);
@@ -116,6 +116,7 @@ public class Deposite extends JFrame {
             btn.setFocusPainted(false);
             btn.setBackground(new Color(220, 230, 255));
             btn.setForeground(Color.BLUE);
+            btn.addActionListener(e -> amountField.setText(amt.replace("$", "")));
             quickButtons.add(btn);
         }
 
@@ -143,6 +144,14 @@ public class Deposite extends JFrame {
         submitBtn.setPreferredSize(new Dimension(300, 40));
         submitBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
 
+        submitBtn.addActionListener(e -> {
+            String amount = amountField.getText();
+            String description = descArea.getText();
+            System.out.println("Deposit Requested:");
+            System.out.println("Amount: " + amount);
+            System.out.println("Description: " + description);
+        });
+
         content.add(submitBtn);
 
         // Add to Frame
@@ -152,13 +161,12 @@ public class Deposite extends JFrame {
     }
 
     private JPanel wrapRadioPanel(String title, String subtitle, JRadioButton button) {
-        JPanel panel = new JPanel();
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(180, 180, 255)),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         panel.setBackground(Color.WHITE);
-        panel.setLayout(new BorderLayout());
         panel.setPreferredSize(new Dimension(200, 70));
 
         button.setText("<html><b>" + title + "</b><br><span style='font-size:10px;color:gray'>" + subtitle + "</span></html>");

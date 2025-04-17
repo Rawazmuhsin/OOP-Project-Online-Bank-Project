@@ -100,9 +100,7 @@ public class ForgotPassword extends JFrame {
             JLabel fieldLabel = new JLabel(labels[i]);
             fieldLabel.setFont(new Font("Arial", Font.PLAIN, 16));
             fieldLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            fieldPanel.add(fieldLabel);
-
-            fields[i] = labels[i].toLowerCase().contains("password") ? new JPasswordField() : new JTextField();
+            fieldPanel.add(fieldLabel);fields[i] = labels[i].toLowerCase().contains("password") ? new JPasswordField() : new JTextField();
             fields[i].setFont(new Font("Arial", Font.PLAIN, 16));
             fields[i].setMaximumSize(new Dimension(600, 50));
             fields[i].setPreferredSize(new Dimension(600, 50));
@@ -164,9 +162,7 @@ public class ForgotPassword extends JFrame {
         button.setOpaque(true);
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         return button;
-    }
-
-    private void sendOTP() {
+    }private void sendOTP() {
         String emailOrUsername = fields[0].getText().trim();
         if (emailOrUsername.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter your email or username", "Error", JOptionPane.ERROR_MESSAGE);
@@ -250,9 +246,7 @@ public class ForgotPassword extends JFrame {
             otp.append(random.nextInt(10));
         }
         return otp.toString();
-    }
-
-    public static void main(String[] args) {
+    }public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ForgotPassword().setVisible(true));
     }
 }

@@ -47,7 +47,7 @@ public class SignUp extends JFrame {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setBackground(Color.WHITE);
         topPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         JButton backButton = new JButton("← Back");
         styleBackButton(backButton);
         topPanel.add(backButton);
@@ -104,13 +104,13 @@ public class SignUp extends JFrame {
         fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
         fieldPanel.setBackground(Color.WHITE);
         fieldPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         // Label
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Arial", Font.PLAIN, 16));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         fieldPanel.add(label);
-        
+
         // Input field
         boolean isPassword = labelText.toLowerCase().contains("password");
         fields[index] = isPassword ? new JPasswordField() : new JTextField();
@@ -123,7 +123,7 @@ public class SignUp extends JFrame {
             BorderFactory.createEmptyBorder(8, 15, 8, 15)
         ));
         fieldPanel.add(fields[index]);
-        
+
         parent.add(fieldPanel);
     }
 

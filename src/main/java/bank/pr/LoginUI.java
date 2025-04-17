@@ -97,9 +97,7 @@ public class LoginUI extends JFrame {
         ));
         passPanel.add(passField);
         mainPanel.add(passPanel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-
-        // Show password checkbox
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));// Show password checkbox
         JCheckBox showPass = new JCheckBox("Show Password");
         showPass.setFont(new Font("Arial", Font.PLAIN, 14));
         showPass.setOpaque(false);
@@ -193,9 +191,7 @@ public class LoginUI extends JFrame {
 
             if (rs.next()) {
                 String userName = rs.getString("name");
-                int userId = rs.getInt("id");
-
-                // Close the login window
+                int userId = rs.getInt("id");// Close the login window
                 dispose();
 
                 // Open the Dashboard

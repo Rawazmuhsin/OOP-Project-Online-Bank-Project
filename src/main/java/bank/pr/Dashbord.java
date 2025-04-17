@@ -101,9 +101,7 @@ public class Dashbord extends JFrame {
         placeholderLabel.setForeground(new Color(120, 120, 120));
 
         card.add(accountLabel, BorderLayout.NORTH);
-        card.add(placeholderLabel, BorderLayout.SOUTH);
-
-        return card;
+        card.add(placeholderLabel, BorderLayout.SOUTH);return card;
     }
     
     public void setUserInfo(String userName, int userId) {
