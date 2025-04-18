@@ -39,13 +39,11 @@ public class LoginUI extends JFrame {
         getContentPane().setBackground(new Color(230, 233, 239));
         setLayout(new BorderLayout());
 
-        // Main white panel
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        // Title
         JLabel titleLabel = new JLabel("ONLINE BANKING SYSTEM");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(new Color(66, 103, 244));
@@ -53,7 +51,6 @@ public class LoginUI extends JFrame {
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 40)));
 
-        // Email field
         JPanel emailPanel = new JPanel();
         emailPanel.setLayout(new BoxLayout(emailPanel, BoxLayout.Y_AXIS));
         emailPanel.setBackground(Color.WHITE);
@@ -76,7 +73,6 @@ public class LoginUI extends JFrame {
         mainPanel.add(emailPanel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Password field
         JPanel passPanel = new JPanel();
         passPanel.setLayout(new BoxLayout(passPanel, BoxLayout.Y_AXIS));
         passPanel.setBackground(Color.WHITE);
@@ -98,8 +94,7 @@ public class LoginUI extends JFrame {
         passPanel.add(passField);
         mainPanel.add(passPanel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-        
-        // Show password checkbox
+
         JCheckBox showPass = new JCheckBox("Show Password");
         showPass.setFont(new Font("Arial", Font.PLAIN, 14));
         showPass.setOpaque(false);
@@ -114,14 +109,12 @@ public class LoginUI extends JFrame {
         mainPanel.add(showPass);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 40)));
 
-        // Login button
         JButton loginButton = createStyledButton("LOGIN", 600, 60);
         loginButton.addActionListener(e -> attemptLogin());
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainPanel.add(loginButton);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        // Forgot password link
         JLabel forgotPass = new JLabel("Forgot Password?");
         forgotPass.setForeground(new Color(66, 103, 244));
         forgotPass.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -129,14 +122,13 @@ public class LoginUI extends JFrame {
         forgotPass.setAlignmentX(Component.CENTER_ALIGNMENT);
         forgotPass.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                dispose(); // Close login window
-                new ForgotPassword().setVisible(true); // Open forgot password
+                dispose();
+                new ForgotPassword().setVisible(true);
             }
         });
         mainPanel.add(forgotPass);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        // Sign Up link
         JLabel signUpLink = new JLabel("Don't have an account? Sign Up");
         signUpLink.setForeground(new Color(66, 103, 244));
         signUpLink.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -144,13 +136,12 @@ public class LoginUI extends JFrame {
         signUpLink.setAlignmentX(Component.CENTER_ALIGNMENT);
         signUpLink.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent evt) {
-                dispose(); // Close login window
-                new SignUp().setVisible(true); // Open sign-up window
+                dispose();
+                new SignUp().setVisible(true);
             }
         });
         mainPanel.add(signUpLink);
 
-        // Center the panel
         JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.setBackground(new Color(230, 233, 239));
         centerPanel.add(mainPanel);
@@ -184,8 +175,8 @@ public class LoginUI extends JFrame {
         }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
-            // Fixed SQL query to match actual database column names
-            String query = "SELECT account_id, username FROM accounts WHERE email = ? AND password = ?";
+            // Modified query to get all necessary account information including account_type and balance
+            String query = "SELECT account_id, username, email FROM accounts WHERE email = ? AND password = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, email);
             stmt.setString(2, password);
@@ -193,17 +184,17 @@ public class LoginUI extends JFrame {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                // Updated to use correct column names
                 String userName = rs.getString("username");
                 int userId = rs.getInt("account_id");
-                
-                // Close the login window
+
                 dispose();
 
-                // Open the Dashboard
-                Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo(userName, userId); // Set user info
-                dashboard.setVisible(true); // Display the dashboard
+                // Create and show dashboard with user information
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                });
             } else {
                 JOptionPane.showMessageDialog(this,
                     "Invalid email or password",

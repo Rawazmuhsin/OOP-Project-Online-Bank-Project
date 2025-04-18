@@ -1,12 +1,64 @@
 package bank.pr;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 public class Transaction extends JFrame {
+    private int userId;
+    private String userName;
+
+    // Transaction data model
+    private class TransactionItem {
+        Date date;
+        String description;
+        String category;
+        double amount;
+        double balance;
+        
+        public TransactionItem(Date date, String description, String category, double amount, double balance) {
+            this.date = date;
+            this.description = description;
+            this.category = category;
+            this.amount = amount;
+            this.balance = balance;
+        }
+    }
 
     public Transaction() {
+        this(-1, "User"); // Default constructor with placeholder values
+    }
+    
+    public Transaction(int userId, String userName) {
+        this.userId = userId;
+        this.userName = userName;
+        
+        initializeUI();
+    }
+
+    private void initializeUI() {
         setTitle("Online Banking - Transactions");
         setSize(800, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,7 +116,7 @@ public class Transaction extends JFrame {
             menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             menuLabel.addMouseListener(new java.awt.event.MouseAdapter() {
                 public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    JOptionPane.showMessageDialog(null, item + " clicked!");
+                    handleMenuItemClick(item);
                 }
                 public void mouseEntered(java.awt.event.MouseEvent evt) {
                     menuLabel.setForeground(new Color(200, 200, 200));
@@ -79,6 +131,29 @@ public class Transaction extends JFrame {
         }
 
         return sidebarPanel;
+    }
+
+    private void handleMenuItemClick(String menuItem) {
+        switch (menuItem) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Transfer":
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            default:
+                JOptionPane.showMessageDialog(this, menuItem + " functionality coming soon!");
+                break;
+        }
     }
 
     private JPanel createTransactionsContentPanel() {
@@ -122,28 +197,91 @@ public class Transaction extends JFrame {
             headerPanel.add(headerLabel);
         }
 
-        // Create table rows
-        String[][] transactions = {
-            {"Mar 15, 2023", "Grocery Store", "Food", "-$86.75", "$4,582.90"},
-            {"Mar 1, 2023", "Salary Deposit", "Income", "+$3,500.00", "$4,669.65"},
-            {"Feb 28, 2023", "Utility Bill", "Bills", "-$120.50", "$1,169.65"}
-        };
+        // Load transactions from database
+        ArrayList<TransactionItem> transactions = loadTransactionsFromDatabase();
+        
+        // Display transactions
+        displayTransactions(contentPanel, transactions);
 
+        return mainPanel;
+    }
+    
+    private ArrayList<TransactionItem> loadTransactionsFromDatabase() {
+        ArrayList<TransactionItem> transactions = new ArrayList<>();
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Query to get transactions for the current user
+            String query = "SELECT t.transaction_date, t.description, t.transaction_type as category, " +
+                          "t.amount, a.balance " +
+                          "FROM transactions t " +
+                          "JOIN accounts a ON t.account_id = a.account_id " +
+                          "WHERE a.username = ? OR a.account_id = ? " +
+                          "ORDER BY t.transaction_date DESC";
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, userName);
+            stmt.setInt(2, userId);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Date date = rs.getDate("transaction_date");
+                String description = rs.getString("description");
+                String category = rs.getString("category");
+                double amount = rs.getDouble("amount");
+                double balance = rs.getDouble("balance");
+                
+                transactions.add(new TransactionItem(date, description, category, amount, balance));
+            }
+            
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error loading transaction information: " + ex.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+            
+            // Add some placeholder data if database connection fails
+            transactions.add(new TransactionItem(new Date(), "Database connection error", "Error", 0.0, 0.0));
+        }
+        
+        // If no transactions found, add a placeholder
+        if (transactions.isEmpty()) {
+            transactions.add(new TransactionItem(new Date(), "No transactions found", "Info", 0.0, 0.0));
+        }
+        
+        return transactions;
+    }
+    
+    private void displayTransactions(JPanel contentPanel, ArrayList<TransactionItem> transactions) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy");
         int yPos = 140;
-        for (int i = 0; i < transactions.length; i++) {
+        
+        for (int i = 0; i < transactions.size(); i++) {
+            TransactionItem transaction = transactions.get(i);
+            
             RoundedPanel rowPanel = new RoundedPanel(5);
             rowPanel.setBackground(i % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)); // Alternate row colors
             rowPanel.setBounds(20, yPos, 490, 30);
             rowPanel.setLayout(new GridLayout(1, 5));
             contentPanel.add(rowPanel);
 
-            for (int j = 0; j < transactions[i].length; j++) {
-                JLabel cellLabel = new JLabel(transactions[i][j]);
+            // Format the transaction data
+            String dateStr = dateFormat.format(transaction.date);
+            String descriptionStr = transaction.description;
+            String categoryStr = transaction.category;
+            String amountStr = (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount);
+            String balanceStr = String.format("$%.2f", transaction.balance);
+            
+            String[] rowData = {dateStr, descriptionStr, categoryStr, amountStr, balanceStr};
+            
+            for (int j = 0; j < rowData.length; j++) {
+                JLabel cellLabel = new JLabel(rowData[j]);
                 cellLabel.setFont(new Font("Arial", Font.PLAIN, 14));
                 
                 // Set color for amount column
                 if (j == 3) {
-                    cellLabel.setForeground(transactions[i][j].startsWith("+") ? 
+                    cellLabel.setForeground(transaction.amount >= 0 ? 
                         new Color(0, 128, 0) : // Green for positive
                         new Color(255, 0, 0));  // Red for negative
                 } else {
@@ -156,18 +294,16 @@ public class Transaction extends JFrame {
             
             yPos += 40;
         }
-
-        return mainPanel;
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Transaction gui = new Transaction();
+            Transaction gui = new Transaction(12345, "John Doe");
             gui.setVisible(true);
         });
     }
 
-    // Custom Rounded Panel class (same as your perfect example)
+    // Custom Rounded Panel class
     static class RoundedPanel extends JPanel {
         private int cornerRadius;
 
@@ -187,7 +323,7 @@ public class Transaction extends JFrame {
         }
     }
 
-    // Custom Rounded Button class (same as your perfect example)
+    // Custom Rounded Button class
     static class RoundedButton extends JButton {
         private int cornerRadius;
 

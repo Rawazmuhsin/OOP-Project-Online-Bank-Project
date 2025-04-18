@@ -6,8 +6,13 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -16,6 +21,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -24,6 +30,10 @@ public class Dashbord extends JFrame {
     private JLabel greeting;
     private String userName;
     private int userId;
+    private JLabel checkingBalanceLabel;
+    private JLabel savingsBalanceLabel;
+    private JLabel checkingAccountIdLabel;
+    private JLabel savingsAccountIdLabel;
 
     public Dashbord() {
         setTitle("Online Banking");
@@ -83,9 +93,17 @@ public class Dashbord extends JFrame {
         cardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
         cardsPanel.setBackground(new Color(245, 247, 251));
 
-        // Placeholder cards
-        cardsPanel.add(createAccountCard("Checking - ****1234"));
-        cardsPanel.add(createAccountCard("Savings - ****5678"));
+        // Create account cards with updated layout to include account ID
+        JPanel checkingCard = createAccountCard("Checking - ****1234");
+        checkingBalanceLabel = (JLabel) ((JPanel)checkingCard.getComponent(1)).getComponent(1);
+        checkingAccountIdLabel = (JLabel) ((JPanel)checkingCard.getComponent(1)).getComponent(3);
+        
+        JPanel savingsCard = createAccountCard("Savings - ****5678");
+        savingsBalanceLabel = (JLabel) ((JPanel)savingsCard.getComponent(1)).getComponent(1);
+        savingsAccountIdLabel = (JLabel) ((JPanel)savingsCard.getComponent(1)).getComponent(3);
+
+        cardsPanel.add(checkingCard);
+        cardsPanel.add(savingsCard);
 
         content.add(cardsPanel, BorderLayout.CENTER);
 
@@ -96,7 +114,7 @@ public class Dashbord extends JFrame {
 
     private JPanel createAccountCard(String title) {
         JPanel card = new JPanel();
-        card.setPreferredSize(new Dimension(300, 120));
+        card.setPreferredSize(new Dimension(300, 150));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 220, 220)),
@@ -106,13 +124,37 @@ public class Dashbord extends JFrame {
 
         JLabel accountLabel = new JLabel(title);
         accountLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-
-        JLabel placeholderLabel = new JLabel("[Available Balance]");
-        placeholderLabel.setFont(new Font("SansSerif", Font.ITALIC, 16));
-        placeholderLabel.setForeground(new Color(120, 120, 120));
+        
+        // Create info panel for balance and account ID
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new GridLayout(2, 2, 5, 10));
+        infoPanel.setBackground(Color.WHITE);
+        
+        // Balance section
+        JLabel balanceTextLabel = new JLabel("Balance:");
+        balanceTextLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
+        JLabel balanceLabel = new JLabel("$0.00");
+        balanceLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        balanceLabel.setForeground(new Color(44, 62, 80));
+        
+        // Account ID section
+        JLabel accountIdTextLabel = new JLabel("Account-ID:");
+        accountIdTextLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
+        JLabel accountIdLabel = new JLabel("?");
+        accountIdLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        accountIdLabel.setForeground(new Color(44, 62, 80));
+        
+        // Add all to info panel
+        infoPanel.add(balanceTextLabel);
+        infoPanel.add(balanceLabel);
+        infoPanel.add(accountIdTextLabel);
+        infoPanel.add(accountIdLabel);
 
         card.add(accountLabel, BorderLayout.NORTH);
-        card.add(placeholderLabel, BorderLayout.SOUTH);
+        card.add(infoPanel, BorderLayout.CENTER);
+        
         return card;
     }
     
@@ -126,6 +168,41 @@ public class Dashbord extends JFrame {
         String formattedDateTime = now.format(formatter);
         
         greeting.setText("Hello, " + userName + "! Last login: " + formattedDateTime);
+        
+        // Load and display account balances and account IDs
+        loadAccountInfo();
+    }
+    
+    private void loadAccountInfo() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT account_id, account_type, balance FROM accounts WHERE account_id = ? OR username = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, userId);
+            stmt.setString(2, userName);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String accountType = rs.getString("account_type");
+                double balance = rs.getDouble("balance");
+                int accountId = rs.getInt("account_id");
+                
+                if ("Checking".equals(accountType)) {
+                    checkingBalanceLabel.setText(String.format("$%.2f", balance));
+                    checkingAccountIdLabel.setText(String.valueOf(accountId));
+                } else if ("Savings".equals(accountType)) {
+                    savingsBalanceLabel.setText(String.format("$%.2f", balance));
+                    savingsAccountIdLabel.setText(String.valueOf(accountId));
+                }
+            }
+            
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error loading account information: " + ex.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
     }
     
     // Method to handle button clicks
@@ -135,12 +212,19 @@ public class Dashbord extends JFrame {
         switch (buttonName) {
             case "Dashboard":
                 // Refresh dashboard
+                loadAccountInfo();
                 break;
             case "Accounts":
                 // Go to accounts page
+                JOptionPane.showMessageDialog(this, "Accounts page coming soon!");
                 break;
             case "Transactions":
                 // Go to transactions page
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transactionScreen = new Transaction(userId, userName);
+                    transactionScreen.setVisible(true);
+                    this.dispose();
+                });
                 break;
             case "Transfers":
                 // Go to transfers page
@@ -152,6 +236,7 @@ public class Dashbord extends JFrame {
                 break;
             case "Cards":
                 // Go to cards page
+                JOptionPane.showMessageDialog(this, "Cards page coming soon!");
                 break;
             default:
                 break;
