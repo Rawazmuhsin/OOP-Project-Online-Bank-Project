@@ -9,6 +9,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -114,14 +116,14 @@ public class Transaction extends JFrame {
             
             // Make labels clickable like buttons
             menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            menuLabel.addMouseListener(new java.awt.event.MouseAdapter() {
-                public void mouseClicked(java.awt.event.MouseEvent evt) {
+            menuLabel.addMouseListener(new MouseAdapter() {
+                public void mouseClicked(MouseEvent evt) {
                     handleMenuItemClick(item);
                 }
-                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                public void mouseEntered(MouseEvent evt) {
                     menuLabel.setForeground(new Color(200, 200, 200));
                 }
-                public void mouseExited(java.awt.event.MouseEvent evt) {
+                public void mouseExited(MouseEvent evt) {
                     menuLabel.setForeground(Color.WHITE);
                 }
             });
@@ -143,12 +145,29 @@ public class Transaction extends JFrame {
                     this.dispose();
                 });
                 break;
+            case "Withdraw":
+                SwingUtilities.invokeLater(() -> {
+                    Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Deposit":
+                SwingUtilities.invokeLater(() -> {
+                    Deposite depositScreen = new Deposite();
+                    depositScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
                     transferScreen.setVisible(true);
                     this.dispose();
                 });
+                break;
+            case "Accounts":
+                JOptionPane.showMessageDialog(this, "Accounts functionality coming soon!");
                 break;
             default:
                 JOptionPane.showMessageDialog(this, menuItem + " functionality coming soon!");

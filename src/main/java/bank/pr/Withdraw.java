@@ -29,6 +29,8 @@ public class Withdraw extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
+    private int userId = 12345; // Default user ID
+    private String userName = "John Doe"; // Default user name
 
     public Withdraw() {
         setTitle("Withdraw Funds - Online Banking");
@@ -48,7 +50,7 @@ public class Withdraw extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        String[] menuItems = {"Withdraw", "Dashboard", "Accounts", "Deposit", "Transfer"};
+        String[] menuItems = {"Withdraw", "Dashboard", "Accounts", "Deposit", "Transfer", "Transactions"};
 
         sidebar.add(titleLabel);
         for (String item : menuItems) {
@@ -205,6 +207,12 @@ public class Withdraw extends JFrame {
         return panel;
     }
     
+    // Method to set user info
+    public void setUserInfo(String userName, int userId) {
+        this.userName = userName;
+        this.userId = userId;
+    }
+    
     // Method to handle button clicks
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
@@ -213,7 +221,7 @@ public class Withdraw extends JFrame {
             case "Dashboard":
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo("John Doe", 12345);
+                    dashboard.setUserInfo(userName, userId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -235,8 +243,15 @@ public class Withdraw extends JFrame {
                     this.dispose();
                 });
                 break;
+            case "Transactions":
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transactionScreen = new Transaction(userId, userName);
+                    transactionScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
             case "Accounts":
-                // Go to accounts page
+                JOptionPane.showMessageDialog(this, "Accounts functionality coming soon!");
                 break;
             default:
                 break;
@@ -284,7 +299,7 @@ public class Withdraw extends JFrame {
             // Navigate back to dashboard
             SwingUtilities.invokeLater(() -> {
                 Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo("John Doe", 12345);
+                dashboard.setUserInfo(userName, userId);
                 dashboard.setVisible(true);
                 this.dispose();
             });

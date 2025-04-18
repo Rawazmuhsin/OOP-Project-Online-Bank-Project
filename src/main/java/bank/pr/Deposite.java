@@ -29,6 +29,8 @@ public class Deposite extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
+    private int userId = 12345; // Default user ID
+    private String userName = "John Doe"; // Default user name
 
     public Deposite() {
         setTitle("Deposit Funds - Online Banking");
@@ -48,7 +50,7 @@ public class Deposite extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        String[] menuItems = {"Deposit", "Dashboard", "Accounts", "Withdraw", "Transfer"};
+        String[] menuItems = {"Deposit", "Dashboard", "Accounts", "Withdraw", "Transfer", "Transactions"};
 
         sidebar.add(titleLabel);
         for (String item : menuItems) {
@@ -200,6 +202,12 @@ public class Deposite extends JFrame {
         return panel;
     }
     
+    // Method to set user info
+    public void setUserInfo(String userName, int userId) {
+        this.userName = userName;
+        this.userId = userId;
+    }
+    
     // Method to handle button clicks
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
@@ -208,7 +216,7 @@ public class Deposite extends JFrame {
             case "Dashboard":
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo("John Doe", 12345);
+                    dashboard.setUserInfo(userName, userId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -219,6 +227,7 @@ public class Deposite extends JFrame {
             case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
                     Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setUserInfo(userName, userId);
                     withdrawScreen.setVisible(true);
                     this.dispose();
                 });
@@ -230,8 +239,15 @@ public class Deposite extends JFrame {
                     this.dispose();
                 });
                 break;
+            case "Transactions":
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transactionScreen = new Transaction(userId, userName);
+                    transactionScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
             case "Accounts":
-                // Go to accounts page
+                JOptionPane.showMessageDialog(this, "Accounts functionality coming soon!");
                 break;
             default:
                 break;
@@ -269,7 +285,7 @@ public class Deposite extends JFrame {
             // Navigate back to dashboard
             SwingUtilities.invokeLater(() -> {
                 Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo("John Doe", 12345);
+                dashboard.setUserInfo(userName, userId);
                 dashboard.setVisible(true);
                 this.dispose();
             });
