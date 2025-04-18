@@ -32,7 +32,7 @@ public class LoginUI extends JFrame {
 
     public LoginUI() {
         setTitle("Online Banking System");
-        setSize(700, 850); // Adjusted height to match SignUp page
+        setSize(700, 850); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -97,7 +97,9 @@ public class LoginUI extends JFrame {
         ));
         passPanel.add(passField);
         mainPanel.add(passPanel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));// Show password checkbox
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        
+        // Show password checkbox
         JCheckBox showPass = new JCheckBox("Show Password");
         showPass.setFont(new Font("Arial", Font.PLAIN, 14));
         showPass.setOpaque(false);
@@ -182,7 +184,8 @@ public class LoginUI extends JFrame {
         }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT id, name FROM accounts WHERE email = ? AND password = ?";
+            // Fixed SQL query to match actual database column names
+            String query = "SELECT account_id, username FROM accounts WHERE email = ? AND password = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, email);
             stmt.setString(2, password);
@@ -190,8 +193,11 @@ public class LoginUI extends JFrame {
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                String userName = rs.getString("name");
-                int userId = rs.getInt("id");// Close the login window
+                // Updated to use correct column names
+                String userName = rs.getString("username");
+                int userId = rs.getInt("account_id");
+                
+                // Close the login window
                 dispose();
 
                 // Open the Dashboard

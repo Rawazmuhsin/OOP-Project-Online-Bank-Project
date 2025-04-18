@@ -7,7 +7,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -52,6 +53,15 @@ public class Transfer extends JFrame {
             button.setBorderPainted(false);
             button.setFont(new Font("SansSerif", Font.PLAIN, 14));
             button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+
+            // Add action listener for navigation
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handleNavigation(item);
+                }
+            });
+
             sidebar.add(button);
         }
 
@@ -78,7 +88,6 @@ public class Transfer extends JFrame {
 
         JRadioButton internal = new JRadioButton("Between My Accounts");
         JRadioButton external = new JRadioButton("To Another Person");
-
         ButtonGroup group = new ButtonGroup();
         group.add(internal);
         group.add(external);
@@ -127,11 +136,21 @@ public class Transfer extends JFrame {
         JPanel quickAmountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         quickAmountPanel.setOpaque(false);
         String[] amounts = {"$100", "$250", "$500", "$1000"};
+
         for (String amount : amounts) {
             JButton quickBtn = new JButton(amount);
             quickBtn.setFocusPainted(false);
             quickBtn.setBackground(new Color(255, 230, 230));
             quickBtn.setForeground(new Color(180, 0, 0));
+
+            // Add action listener for quick amount buttons
+            quickBtn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    amountField.setText(amount.replace("$", ""));
+                }
+            });
+
             quickAmountPanel.add(quickBtn);
         }
 
@@ -146,6 +165,15 @@ public class Transfer extends JFrame {
         transferBtn.setFocusPainted(false);
         transferBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
         transferBtn.setPreferredSize(new Dimension(300, 40));
+
+        // Add action listener for transfer button
+        transferBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                processTransfer(fromField.getText(), toField.getText(), amountField.getText());
+            }
+        });
+
         content.add(transferBtn);
 
         // Frame Layout
@@ -174,7 +202,62 @@ public class Transfer extends JFrame {
         panel.add(button);
         panel.add(label);
         panel.add(sub);
+
         return panel;
+    }
+
+    // Method to handle navigation between pages
+    private void handleNavigation(String destination) {
+        this.dispose(); // Close current window
+
+        // Open the selected page
+        switch (destination) {
+            case "Dashboard":
+            SwingUtilities.invokeLater(() -> {
+                Dashbord dashboard = new Dashbord();
+                dashboard.setUserInfo("John Doe", 12345); // Optionally set user info if needed
+                dashboard.setVisible(true); // Ensure the Dashboard is visible
+            });
+            break;
+            case "Deposit":
+                SwingUtilities.invokeLater(Deposite::new);
+                break;
+            case "Withdraw":
+                SwingUtilities.invokeLater(Withdraw::new);
+                break;
+            case "Transfer":
+                // Already on this page, do nothing or refresh
+                SwingUtilities.invokeLater(Transfer::new);
+                break;
+            case "Accounts":
+                System.out.println("Accounts feature not implemented yet");
+                SwingUtilities.invokeLater(Dashbord::new);
+                break;
+            default:
+                System.out.println("Navigation to " + destination + " not implemented");
+                break;
+        }
+    }
+
+    // Method to process transfer
+    private void processTransfer(String fromAccount, String toAccount, String amount) {
+        try {
+            double transferAmount = Double.parseDouble(amount);
+            System.out.println("Transfer initiated:");
+            System.out.println("From: " + fromAccount);
+            System.out.println("To: " + toAccount);
+            System.out.println("Amount: $" + transferAmount);
+
+            // Show success message
+            System.out.println("Transfer successful!");
+
+            // Return to dashboard
+            this.dispose();
+            SwingUtilities.invokeLater(Dashbord::new);
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid amount entered: " + amount);
+            // In a real app, you would show an error dialog here
+        }
     }
 
     public static void main(String[] args) {

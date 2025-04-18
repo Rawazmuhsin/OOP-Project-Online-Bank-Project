@@ -6,6 +6,8 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -54,6 +56,15 @@ public class Dashbord extends JFrame {
             button.setBorderPainted(false);
             button.setFont(new Font("SansSerif", Font.PLAIN, 14));
             button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+            
+            // Add action listener to each button
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handleButtonClick(item);
+                }
+            });
+            
             sidebar.add(button);
         }
 
@@ -101,7 +112,8 @@ public class Dashbord extends JFrame {
         placeholderLabel.setForeground(new Color(120, 120, 120));
 
         card.add(accountLabel, BorderLayout.NORTH);
-        card.add(placeholderLabel, BorderLayout.SOUTH);return card;
+        card.add(placeholderLabel, BorderLayout.SOUTH);
+        return card;
     }
     
     public void setUserInfo(String userName, int userId) {
@@ -115,8 +127,42 @@ public class Dashbord extends JFrame {
         
         greeting.setText("Hello, " + userName + "! Last login: " + formattedDateTime);
     }
+    
+    // Method to handle button clicks
+    private void handleButtonClick(String buttonName) {
+        System.out.println("Button clicked: " + buttonName);
+        
+        switch (buttonName) {
+            case "Dashboard":
+                // Refresh dashboard
+                break;
+            case "Accounts":
+                // Go to accounts page
+                break;
+            case "Transactions":
+                // Go to transactions page
+                break;
+            case "Transfers":
+                // Go to transfers page
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Cards":
+                // Go to cards page
+                break;
+            default:
+                break;
+        }
+    }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(Dashbord::new);
+        SwingUtilities.invokeLater(() -> {
+            Dashbord dashboard = new Dashbord();
+            dashboard.setUserInfo("John Doe", 12345);
+            dashboard.setVisible(true);
+        });
     }
 }

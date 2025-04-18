@@ -7,6 +7,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -15,6 +17,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -23,6 +26,9 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
 public class Withdraw extends JFrame {
+    private JTextField amountField;
+    private JTextArea descArea;
+    private JPanel quickButtons;
 
     public Withdraw() {
         setTitle("Withdraw Funds - Online Banking");
@@ -55,6 +61,15 @@ public class Withdraw extends JFrame {
             button.setBorderPainted(false);
             button.setFont(new Font("SansSerif", Font.PLAIN, 14));
             button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+            
+            // Add action listener to each button
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handleButtonClick(item);
+                }
+            });
+            
             sidebar.add(button);
         }
 
@@ -96,7 +111,7 @@ public class Withdraw extends JFrame {
         // Amount Input
         JLabel amountLabel = new JLabel("Amount");
         amountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JTextField amountField = new JTextField();
+        amountField = new JTextField();
         amountField.setPreferredSize(new Dimension(200, 30));
 
         content.add(amountLabel);
@@ -107,7 +122,7 @@ public class Withdraw extends JFrame {
         // Quick Amount Buttons
         JLabel quickLabel = new JLabel("Quick amounts:");
         quickLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        JPanel quickButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        quickButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
         quickButtons.setOpaque(false);
 
         String[] quicks = {"$100", "$250", "$500", "$1000"};
@@ -116,6 +131,15 @@ public class Withdraw extends JFrame {
             btn.setFocusPainted(false);
             btn.setBackground(new Color(220, 255, 230));
             btn.setForeground(new Color(0, 128, 0));
+            
+            // Add action listener to quick amount buttons
+            btn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    amountField.setText(amt.replace("$", ""));
+                }
+            });
+            
             quickButtons.add(btn);
         }
 
@@ -126,7 +150,7 @@ public class Withdraw extends JFrame {
         // Description
         JLabel descLabel = new JLabel("Description (Optional)");
         descLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        JTextArea descArea = new JTextArea(3, 30);
+        descArea = new JTextArea(3, 30);
         descArea.setLineWrap(true);
         descArea.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
 
@@ -141,6 +165,14 @@ public class Withdraw extends JFrame {
         submitBtn.setFocusPainted(false);
         submitBtn.setPreferredSize(new Dimension(300, 40));
         submitBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        
+        // Add action listener to submit button
+        submitBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleWithdrawSubmit();
+            }
+        });
 
         content.add(submitBtn);
 
@@ -171,6 +203,95 @@ public class Withdraw extends JFrame {
         panel.add(label);
         panel.add(sub);
         return panel;
+    }
+    
+    // Method to handle button clicks
+    private void handleButtonClick(String buttonName) {
+        System.out.println("Button clicked: " + buttonName);
+        
+        switch (buttonName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo("John Doe", 12345);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Deposit":
+                SwingUtilities.invokeLater(() -> {
+                    Deposite depositScreen = new Deposite();
+                    depositScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Withdraw":
+                // Stay on withdraw page
+                break;
+            case "Transfer":
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Accounts":
+                // Go to accounts page
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // Method to handle withdraw submission
+    private void handleWithdrawSubmit() {
+        String amount = amountField.getText();
+        String description = descArea.getText();
+        
+        if (amount.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter an amount to withdraw", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try {
+            double amountValue = Double.parseDouble(amount);
+            if (amountValue <= 0) {
+                JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Process withdrawal (simulated)
+            double accountBalance = 3000.00; // Simulated balance
+            
+            if (amountValue > accountBalance) {
+                JOptionPane.showMessageDialog(this, 
+                        "Insufficient funds. Your current balance is $" + accountBalance, 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            System.out.println("Withdrawal Requested:");
+            System.out.println("Amount: $" + amountValue);
+            System.out.println("Description: " + description);
+            
+            // Show success message
+            JOptionPane.showMessageDialog(this, 
+                    "Withdrawal of $" + amountValue + " was successful!", 
+                    "Withdrawal Successful", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            
+            // Navigate back to dashboard
+            SwingUtilities.invokeLater(() -> {
+                Dashbord dashboard = new Dashbord();
+                dashboard.setUserInfo("John Doe", 12345);
+                dashboard.setVisible(true);
+                this.dispose();
+            });
+            
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {

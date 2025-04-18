@@ -7,6 +7,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -15,6 +17,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -23,6 +26,9 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
 public class Deposite extends JFrame {
+    private JTextField amountField;
+    private JTextArea descArea;
+    private JPanel quickButtons;
 
     public Deposite() {
         setTitle("Deposit Funds - Online Banking");
@@ -55,6 +61,15 @@ public class Deposite extends JFrame {
             button.setBorderPainted(false);
             button.setFont(new Font("SansSerif", Font.PLAIN, 14));
             button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+            
+            // Add action listener to each button
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handleButtonClick(item);
+                }
+            });
+            
             sidebar.add(button);
         }
 
@@ -96,7 +111,7 @@ public class Deposite extends JFrame {
         // Amount Input
         JLabel amountLabel = new JLabel("Amount");
         amountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JTextField amountField = new JTextField();
+        amountField = new JTextField();
         amountField.setPreferredSize(new Dimension(200, 30));
 
         content.add(amountLabel);
@@ -107,7 +122,7 @@ public class Deposite extends JFrame {
         // Quick Amount Buttons
         JLabel quickLabel = new JLabel("Quick amounts:");
         quickLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        JPanel quickButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        quickButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
         quickButtons.setOpaque(false);
 
         String[] quicks = {"$100", "$500", "$1000"};
@@ -116,7 +131,15 @@ public class Deposite extends JFrame {
             btn.setFocusPainted(false);
             btn.setBackground(new Color(220, 230, 255));
             btn.setForeground(Color.BLUE);
-            btn.addActionListener(e -> amountField.setText(amt.replace("$", "")));
+            
+            // Add action listener to quick amount buttons
+            btn.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    amountField.setText(amt.replace("$", ""));
+                }
+            });
+            
             quickButtons.add(btn);
         }
 
@@ -127,7 +150,7 @@ public class Deposite extends JFrame {
         // Description
         JLabel descLabel = new JLabel("Description (Optional)");
         descLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        JTextArea descArea = new JTextArea(3, 30);
+        descArea = new JTextArea(3, 30);
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);
         descArea.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
@@ -144,12 +167,11 @@ public class Deposite extends JFrame {
         submitBtn.setPreferredSize(new Dimension(300, 40));
         submitBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
 
-        submitBtn.addActionListener(e -> {
-            String amount = amountField.getText();
-            String description = descArea.getText();
-            System.out.println("Deposit Requested:");
-            System.out.println("Amount: " + amount);
-            System.out.println("Description: " + description);
+        submitBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                handleDepositSubmit();
+            }
         });
 
         content.add(submitBtn);
@@ -176,6 +198,85 @@ public class Deposite extends JFrame {
 
         panel.add(button, BorderLayout.CENTER);
         return panel;
+    }
+    
+    // Method to handle button clicks
+    private void handleButtonClick(String buttonName) {
+        System.out.println("Button clicked: " + buttonName);
+        
+        switch (buttonName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo("John Doe", 12345);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Deposit":
+                // Stay on deposit page
+                break;
+            case "Withdraw":
+                SwingUtilities.invokeLater(() -> {
+                    Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Transfer":
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Accounts":
+                // Go to accounts page
+                break;
+            default:
+                break;
+        }
+    }
+    
+    // Method to handle deposit submission
+    private void handleDepositSubmit() {
+        String amount = amountField.getText();
+        String description = descArea.getText();
+        
+        if (amount.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter an amount to deposit", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try {
+            double amountValue = Double.parseDouble(amount);
+            if (amountValue <= 0) {
+                JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Process deposit
+            System.out.println("Deposit Requested:");
+            System.out.println("Amount: $" + amountValue);
+            System.out.println("Description: " + description);
+            
+            // Show success message
+            JOptionPane.showMessageDialog(this, 
+                    "Deposit of $" + amountValue + " was successful!", 
+                    "Deposit Successful", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            
+            // Navigate back to dashboard
+            SwingUtilities.invokeLater(() -> {
+                Dashbord dashboard = new Dashbord();
+                dashboard.setUserInfo("John Doe", 12345);
+                dashboard.setVisible(true);
+                this.dispose();
+            });
+            
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     public static void main(String[] args) {
