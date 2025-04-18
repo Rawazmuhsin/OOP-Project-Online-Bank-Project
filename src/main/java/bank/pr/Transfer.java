@@ -230,9 +230,14 @@ public class Transfer extends JFrame {
                 // Already on this page, do nothing or refresh
                 SwingUtilities.invokeLater(Transfer::new);
                 break;
-            case "Accounts":
-                System.out.println("Accounts feature not implemented yet");
-                SwingUtilities.invokeLater(Dashbord::new);
+                case "Accounts":
+                // Go to User Profile page
+                SwingUtilities.invokeLater(() -> {
+                    UserProfile userProfile = new UserProfile();
+                    // userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setVisible(true);
+                    this.dispose(); // Close the current Dashboard window
+                });
                 break;
             default:
                 System.out.println("Navigation to " + destination + " not implemented");

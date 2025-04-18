@@ -214,9 +214,14 @@ public class Dashbord extends JFrame {
                 // Refresh dashboard
                 loadAccountInfo();
                 break;
-            case "Accounts":
-                // Go to accounts page
-                JOptionPane.showMessageDialog(this, "Accounts page coming soon!");
+                case "Accounts":
+                // Go to User Profile page
+                SwingUtilities.invokeLater(() -> {
+                    UserProfile userProfile = new UserProfile();
+                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setVisible(true);
+                    this.dispose(); // Close the current Dashboard window
+                });
                 break;
             case "Transactions":
                 // Go to transactions page

@@ -246,8 +246,14 @@ public class Deposite extends JFrame {
                     this.dispose();
                 });
                 break;
-            case "Accounts":
-                JOptionPane.showMessageDialog(this, "Accounts functionality coming soon!");
+                case "Accounts":
+                // Go to User Profile page
+                SwingUtilities.invokeLater(() -> {
+                    UserProfile userProfile = new UserProfile();
+                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setVisible(true);
+                    this.dispose(); // Close the current Dashboard window
+                });
                 break;
             default:
                 break;

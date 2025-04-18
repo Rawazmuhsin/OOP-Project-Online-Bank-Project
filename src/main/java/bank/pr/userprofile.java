@@ -20,6 +20,9 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 public class UserProfile extends JFrame {
+    
+    private String userName = "Alex Johnson"; // Default username
+    private int userId = 12345; // Default user ID
 
     public UserProfile() {
         setTitle(" Kurdish - O - Banking (KOB) - Profile");
@@ -79,10 +82,7 @@ public class UserProfile extends JFrame {
             menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             menuLabel.addMouseListener(new java.awt.event.MouseAdapter() {
                 public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    JOptionPane.showMessageDialog(null, "Navigating to " + item);
-                    dispose();
-                    // Here you would normally open the appropriate screen
-                   
+                    handleNavigation(item);
                 }
                 public void mouseEntered(java.awt.event.MouseEvent evt) {
                     menuLabel.setForeground(new Color(200, 200, 200));
@@ -219,6 +219,62 @@ public class UserProfile extends JFrame {
         contentPanel.add(deleteButton);
 
         return mainPanel;
+    }
+    
+    // Method to set user info
+    public void setUserInfo(String userName, int userId) {
+        this.userName = userName;
+        this.userId = userId;
+    }
+    
+    // Method to handle navigation between pages
+    private void handleNavigation(String destination) {
+        System.out.println("Navigating to: " + destination);
+        this.dispose(); // Close current window
+
+        // Open the selected page
+        switch (destination) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                });
+                break;
+            case "Accounts":
+                JOptionPane.showMessageDialog(null, "Accounts functionality coming soon!");
+                // Return to dashboard after showing message
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                });
+                break;
+            case "Transactions":
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transactionScreen = new Transaction(userId, userName);
+                    transactionScreen.setVisible(true);
+                });
+                break;
+            case "Transfer":
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setVisible(true);
+                });
+                break;
+            case "Settings":
+                JOptionPane.showMessageDialog(null, "Settings functionality coming soon!");
+                // Stay on profile page
+                SwingUtilities.invokeLater(() -> {
+                    UserProfile profile = new UserProfile();
+                    profile.setUserInfo(userName, userId);
+                    profile.setVisible(true);
+                });
+                break;
+            default:
+                System.out.println("Navigation to " + destination + " not implemented");
+                break;
+        }
     }
 
     public static void main(String[] args) {

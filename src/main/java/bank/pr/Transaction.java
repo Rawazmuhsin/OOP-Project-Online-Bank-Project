@@ -39,7 +39,7 @@ public class Transaction extends JFrame {
         String category;
         double amount;
         double balance;
-        
+
         public TransactionItem(Date date, String description, String category, double amount, double balance) {
             this.date = date;
             this.description = description;
@@ -52,11 +52,10 @@ public class Transaction extends JFrame {
     public Transaction() {
         this(-1, "User"); // Default constructor with placeholder values
     }
-    
+
     public Transaction(int userId, String userName) {
         this.userId = userId;
         this.userName = userName;
-        
         initializeUI();
     }
 
@@ -113,25 +112,25 @@ public class Transaction extends JFrame {
             menuLabel.setFont(new Font("Arial", Font.PLAIN, 14));
             menuLabel.setForeground(Color.WHITE);
             menuLabel.setBounds(60, yPos, 200, 30);
-            
+
             // Make labels clickable like buttons
             menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             menuLabel.addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent evt) {
                     handleMenuItemClick(item);
                 }
+
                 public void mouseEntered(MouseEvent evt) {
                     menuLabel.setForeground(new Color(200, 200, 200));
                 }
+
                 public void mouseExited(MouseEvent evt) {
                     menuLabel.setForeground(Color.WHITE);
                 }
             });
-            
             sidebarPanel.add(menuLabel);
             yPos += 40;
         }
-
         return sidebarPanel;
     }
 
@@ -145,6 +144,7 @@ public class Transaction extends JFrame {
                     this.dispose();
                 });
                 break;
+
             case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
                     Withdraw withdrawScreen = new Withdraw();
@@ -152,6 +152,7 @@ public class Transaction extends JFrame {
                     this.dispose();
                 });
                 break;
+
             case "Deposit":
                 SwingUtilities.invokeLater(() -> {
                     Deposite depositScreen = new Deposite();
@@ -159,6 +160,7 @@ public class Transaction extends JFrame {
                     this.dispose();
                 });
                 break;
+
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
@@ -166,9 +168,17 @@ public class Transaction extends JFrame {
                     this.dispose();
                 });
                 break;
+
             case "Accounts":
-                JOptionPane.showMessageDialog(this, "Accounts functionality coming soon!");
+                // Go to User Profile page
+                SwingUtilities.invokeLater(() -> {
+                    UserProfile userProfile = new UserProfile();
+                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setVisible(true);
+                    this.dispose(); // Close the current Transaction window
+                });
                 break;
+
             default:
                 JOptionPane.showMessageDialog(this, menuItem + " functionality coming soon!");
                 break;
@@ -218,67 +228,61 @@ public class Transaction extends JFrame {
 
         // Load transactions from database
         ArrayList<TransactionItem> transactions = loadTransactionsFromDatabase();
-        
+
         // Display transactions
         displayTransactions(contentPanel, transactions);
 
         return mainPanel;
     }
-    
+
     private ArrayList<TransactionItem> loadTransactionsFromDatabase() {
         ArrayList<TransactionItem> transactions = new ArrayList<>();
-        
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Query to get transactions for the current user
             String query = "SELECT t.transaction_date, t.description, t.transaction_type as category, " +
-                          "t.amount, a.balance " +
-                          "FROM transactions t " +
-                          "JOIN accounts a ON t.account_id = a.account_id " +
-                          "WHERE a.username = ? OR a.account_id = ? " +
-                          "ORDER BY t.transaction_date DESC";
-            
+                           "t.amount, a.balance " +
+                           "FROM transactions t " +
+                           "JOIN accounts a ON t.account_id = a.account_id " +
+                           "WHERE a.username = ? OR a.account_id = ? " +
+                           "ORDER BY t.transaction_date DESC";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, userName);
             stmt.setInt(2, userId);
-            
             ResultSet rs = stmt.executeQuery();
-            
+
             while (rs.next()) {
                 Date date = rs.getDate("transaction_date");
                 String description = rs.getString("description");
                 String category = rs.getString("category");
                 double amount = rs.getDouble("amount");
                 double balance = rs.getDouble("balance");
-                
                 transactions.add(new TransactionItem(date, description, category, amount, balance));
             }
-            
         } catch (SQLException ex) {
             JOptionPane.showMessageDialog(this,
                 "Error loading transaction information: " + ex.getMessage(),
                 "Database Error",
                 JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
-            
+
             // Add some placeholder data if database connection fails
             transactions.add(new TransactionItem(new Date(), "Database connection error", "Error", 0.0, 0.0));
         }
-        
+
         // If no transactions found, add a placeholder
         if (transactions.isEmpty()) {
             transactions.add(new TransactionItem(new Date(), "No transactions found", "Info", 0.0, 0.0));
         }
-        
         return transactions;
     }
-    
+
     private void displayTransactions(JPanel contentPanel, ArrayList<TransactionItem> transactions) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy");
         int yPos = 140;
-        
+
         for (int i = 0; i < transactions.size(); i++) {
             TransactionItem transaction = transactions.get(i);
-            
+
             RoundedPanel rowPanel = new RoundedPanel(5);
             rowPanel.setBackground(i % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)); // Alternate row colors
             rowPanel.setBounds(20, yPos, 490, 30);
@@ -291,26 +295,24 @@ public class Transaction extends JFrame {
             String categoryStr = transaction.category;
             String amountStr = (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount);
             String balanceStr = String.format("$%.2f", transaction.balance);
-            
+
             String[] rowData = {dateStr, descriptionStr, categoryStr, amountStr, balanceStr};
-            
             for (int j = 0; j < rowData.length; j++) {
                 JLabel cellLabel = new JLabel(rowData[j]);
                 cellLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-                
+
                 // Set color for amount column
                 if (j == 3) {
-                    cellLabel.setForeground(transaction.amount >= 0 ? 
+                    cellLabel.setForeground(transaction.amount >= 0 ?
                         new Color(0, 128, 0) : // Green for positive
                         new Color(255, 0, 0));  // Red for negative
                 } else {
                     cellLabel.setForeground(new Color(52, 58, 64)); // #343a40
                 }
-                
+
                 cellLabel.setHorizontalAlignment(SwingConstants.LEFT);
                 rowPanel.add(cellLabel);
             }
-            
             yPos += 40;
         }
     }
@@ -353,7 +355,7 @@ public class Transaction extends JFrame {
             setFocusPainted(false);
             setBorderPainted(false);
         }
-
+SSS
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
