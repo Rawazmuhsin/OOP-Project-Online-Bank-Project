@@ -1,15 +1,30 @@
 package bank.pr;
 
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.Shape;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 
+import javax.swing.BorderFactory;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
 public class ManagerDashboard extends JFrame {
 
     public ManagerDashboard() {
-        setTitle("Bank Manager Dashboard");
+        setTitle("KOB Manager Dashboard");
         setSize(1000, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -34,7 +49,7 @@ public class ManagerDashboard extends JFrame {
         sidebarPanel.setPreferredSize(new Dimension(240, 800));
         sidebarPanel.setLayout(null);
 
-        JLabel titleLabel = new JLabel("Bank Manager");
+        JLabel titleLabel = new JLabel("KOB Manager");
         titleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 150, 30);

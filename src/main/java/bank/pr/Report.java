@@ -14,7 +14,7 @@ import javax.swing.SwingUtilities;
 
 public class Report extends JFrame {
     public Report() {
-        setTitle("Bank Manager Dashboard");
+        setTitle("KOB Manager Dashboard");
         setSize(800, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -38,7 +38,7 @@ public class Report extends JFrame {
                 // Header: Bank Manager
                 g2d.setColor(Color.WHITE);
                 g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-                g2d.drawString("Bank Manager", 60, 70);
+                g2d.drawString("KOB Manager", 60, 70);
                 
                 // Sidebar Links
                 g2d.setColor(new Color(52, 58, 64));

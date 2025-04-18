@@ -1,15 +1,31 @@
 package bank.pr;
 
-import javax.swing.*;
-import javax.swing.table.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 
 public class ManageTransaction extends JFrame {
 
     public ManageTransaction() {
-        setTitle("Bank Manager - Transaction Management");
+        setTitle("KOB Manager - Transaction Management");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -33,7 +49,7 @@ public class ManageTransaction extends JFrame {
         sidebarPanel.setLayout(null);
 
         // Sidebar title
-        JLabel titleLabel = new JLabel("Bank Manager");
+        JLabel titleLabel = new JLabel("KOB Manager");
         titleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 200, 30);

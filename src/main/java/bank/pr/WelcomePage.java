@@ -9,13 +9,19 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 
 public class WelcomePage extends JFrame {
 
     public WelcomePage() {
-        setTitle("Welcome - Online Banking");
+        setTitle("Welcome - Kurdish - O - Banking (KOB)");
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -27,7 +33,7 @@ public class WelcomePage extends JFrame {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(200, getHeight()));
 
-        JLabel titleLabel = new JLabel("  Online Banking");
+        JLabel titleLabel = new JLabel("  Kurdish - O - Banking (KOB)");
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
@@ -40,7 +46,7 @@ public class WelcomePage extends JFrame {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(BorderFactory.createEmptyBorder(60, 40, 40, 40));
 
-        JLabel welcomeLabel = new JLabel("Welcome to Online Banking");
+        JLabel welcomeLabel = new JLabel("Welcome to Kurdish - O - Banking");
         welcomeLabel.setFont(new Font("SansSerif", Font.BOLD, 28));
         welcomeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 

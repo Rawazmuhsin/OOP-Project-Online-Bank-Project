@@ -1,14 +1,28 @@
 package bank.pr;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.geom.RoundRectangle2D;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 
 public class UserProfile extends JFrame {
 
     public UserProfile() {
-        setTitle("Online Banking - Profile");
+        setTitle(" Kurdish - O - Banking (KOB) - Profile");
         setSize(800, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -36,7 +50,7 @@ public class UserProfile extends JFrame {
         sidebarPanel.setLayout(null);
 
         // Sidebar title
-        JLabel titleLabel = new JLabel("Online Banking");
+        JLabel titleLabel = new JLabel("Kurdish - O - Banking");
         titleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 200, 30);

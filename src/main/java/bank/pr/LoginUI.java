@@ -31,7 +31,7 @@ public class LoginUI extends JFrame {
     private JPasswordField passField;
 
     public LoginUI() {
-        setTitle("Online Banking System");
+        setTitle(" Kurdish - O - Banking (KOB)");
         setSize(700, 850); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -44,7 +44,7 @@ public class LoginUI extends JFrame {
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        JLabel titleLabel = new JLabel("ONLINE BANKING SYSTEM");
+        JLabel titleLabel = new JLabel("Kurdish - O - Banking ");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
         titleLabel.setForeground(new Color(66, 103, 244));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);

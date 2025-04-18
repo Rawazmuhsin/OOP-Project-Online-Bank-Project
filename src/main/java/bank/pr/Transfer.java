@@ -9,6 +9,7 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -25,7 +26,7 @@ import javax.swing.SwingUtilities;
 public class Transfer extends JFrame {
 
     public Transfer() {
-        setTitle("Transfer Funds - Online Banking");
+        setTitle("Transfer Funds -  Kurdish - O - Banking (KOB)");
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -37,7 +38,7 @@ public class Transfer extends JFrame {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(200, getHeight()));
 
-        JLabel titleLabel = new JLabel("  Online Banking");
+        JLabel titleLabel = new JLabel("  Kurdish - O - Banking");
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));

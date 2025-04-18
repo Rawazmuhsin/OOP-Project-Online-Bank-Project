@@ -61,7 +61,7 @@ public class Transaction extends JFrame {
     }
 
     private void initializeUI() {
-        setTitle("Online Banking - Transactions");
+        setTitle(" Kurdish - O - Banking (KOB) - Transactions");
         setSize(800, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -89,7 +89,7 @@ public class Transaction extends JFrame {
         sidebarPanel.setLayout(null);
 
         // Sidebar title
-        JLabel titleLabel = new JLabel("Online Banking");
+        JLabel titleLabel = new JLabel("Kurdish - O - Banking");
         titleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 200, 30);

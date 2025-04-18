@@ -33,7 +33,7 @@ public class Withdraw extends JFrame {
     private String userName = "John Doe"; // Default user name
 
     public Withdraw() {
-        setTitle("Withdraw Funds - Online Banking");
+        setTitle("Withdraw Funds -  Kurdish - O - Banking (KOB)");
         setSize(900, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -45,7 +45,7 @@ public class Withdraw extends JFrame {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(200, getHeight()));
 
-        JLabel titleLabel = new JLabel("  Online Banking");
+        JLabel titleLabel = new JLabel("  Kurdish - O - Banking");
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
