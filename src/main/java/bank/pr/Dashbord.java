@@ -53,7 +53,8 @@ public class Dashbord extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        String[] menuItems = {"Dashboard", "Accounts", "Transactions", "Transfers", "Cards"};
+        // Added "Balance" to the menu items
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Transactions", "Transfers", "Cards"};
 
         sidebar.add(titleLabel);
         for (String item : menuItems) {
@@ -214,7 +215,15 @@ public class Dashbord extends JFrame {
                 // Refresh dashboard
                 loadAccountInfo();
                 break;
-                case "Accounts":
+            case "Balance":
+                // Go to Balance page
+                SwingUtilities.invokeLater(() -> {
+                    BalancePage balancePage = new BalancePage();
+                    balancePage.setVisible(true);
+                    this.dispose(); // Close the current Dashboard window
+                });
+                break;
+            case "Accounts":
                 // Go to User Profile page
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();

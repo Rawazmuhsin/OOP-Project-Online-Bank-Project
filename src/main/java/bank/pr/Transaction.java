@@ -355,7 +355,6 @@ public class Transaction extends JFrame {
             setFocusPainted(false);
             setBorderPainted(false);
         }
-SSS
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
