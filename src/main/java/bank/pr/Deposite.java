@@ -9,6 +9,12 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -24,6 +30,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+
+
 
 public class Deposite extends JFrame {
     private JTextField amountField;
@@ -96,10 +104,9 @@ public class Deposite extends JFrame {
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
         methodPanel.setOpaque(false);
 
-        JRadioButton bankTransfer = new JRadioButton("Bank Transfer\n(2–3 business days)");
-        JRadioButton card = new JRadioButton("Credit/Debit Card\n(Instant deposit)");
-
-        ButtonGroup methodGroup = new ButtonGroup();
+        JRadioButton bankTransfer = new JRadioButton(); // FIXED
+        JRadioButton card = new JRadioButton(); // FIXED
+        ButtonGroup methodGroup = new ButtonGroup(); // FIXED
         methodGroup.add(bankTransfer);
         methodGroup.add(card);
         bankTransfer.setSelected(true);
@@ -134,7 +141,6 @@ public class Deposite extends JFrame {
             btn.setBackground(new Color(220, 230, 255));
             btn.setForeground(Color.BLUE);
             
-            // Add action listener to quick amount buttons
             btn.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -178,7 +184,6 @@ public class Deposite extends JFrame {
 
         content.add(submitBtn);
 
-        // Add to Frame
         add(sidebar, BorderLayout.WEST);
         add(new JScrollPane(content), BorderLayout.CENTER);
         setVisible(true);
@@ -197,18 +202,15 @@ public class Deposite extends JFrame {
         button.setOpaque(false);
         button.setFocusPainted(false);
         button.setFont(new Font("SansSerif", Font.PLAIN, 13));
-
         panel.add(button, BorderLayout.CENTER);
         return panel;
     }
-    
-    // Method to set user info
+
     public void setUserInfo(String userName, int userId) {
         this.userName = userName;
         this.userId = userId;
     }
-    
-    // Method to handle button clicks
+
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
         
@@ -222,7 +224,6 @@ public class Deposite extends JFrame {
                 });
                 break;
             case "Deposit":
-                // Stay on deposit page
                 break;
             case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
@@ -246,60 +247,103 @@ public class Deposite extends JFrame {
                     this.dispose();
                 });
                 break;
-                case "Accounts":
-                // Go to User Profile page
+            case "Accounts":
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setUserInfo(userName, userId);
                     userProfile.setVisible(true);
-                    this.dispose(); // Close the current Dashboard window
+                    this.dispose();
                 });
                 break;
             default:
                 break;
         }
     }
-    
-    // Method to handle deposit submission
+
     private void handleDepositSubmit() {
         String amount = amountField.getText();
         String description = descArea.getText();
-        
+
         if (amount.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter an amount to deposit", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         try {
             double amountValue = Double.parseDouble(amount);
             if (amountValue <= 0) {
                 JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
-            // Process deposit
-            System.out.println("Deposit Requested:");
-            System.out.println("Amount: $" + amountValue);
-            System.out.println("Description: " + description);
-            
-            // Show success message
-            JOptionPane.showMessageDialog(this, 
-                    "Deposit of $" + amountValue + " was successful!", 
-                    "Deposit Successful", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            
-            // Navigate back to dashboard
-            SwingUtilities.invokeLater(() -> {
-                Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo(userName, userId);
-                dashboard.setVisible(true);
-                this.dispose();
-            });
-            
+
+            boolean success = saveTransaction(amountValue, description);
+
+            if (success) {
+                JOptionPane.showMessageDialog(this, 
+                        "Deposit of $" + amountValue + " has been submitted and is pending approval.", 
+                        "Deposit Pending", 
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to process deposit. Please try again.", 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private boolean saveTransaction(double amount, String description) {
+    try {
+        Connection conn = DatabaseConnection.getConnection();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String currentDate = sdf.format(new Date());
+
+        // First get the account_id for this user
+        int accountId;
+        String accountQuery = "SELECT account_id FROM accounts WHERE user_id = ? LIMIT 1";
+        PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
+        accountStmt.setInt(1, userId);
+        ResultSet rs = accountStmt.executeQuery();
+        
+        if (rs.next()) {
+            accountId = rs.getInt("account_id");
+        } else {
+            // No account found for this user
+            return false;
+        }
+
+        String sql = "INSERT INTO transactions (account_id, user_id, transaction_type, amount, transaction_date, description, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, accountId);
+        pstmt.setInt(2, userId); 
+        pstmt.setString(3, "DEPOSIT");
+        pstmt.setDouble(4, amount);
+        pstmt.setString(5, currentDate);
+        pstmt.setString(6, description);
+        pstmt.setString(7, TransactionStatus.PENDING);
+
+        int rowsAffected = pstmt.executeUpdate();
+        pstmt.close();
+
+        return rowsAffected > 0;
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+        return false;
+    }
+}
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Deposite::new);

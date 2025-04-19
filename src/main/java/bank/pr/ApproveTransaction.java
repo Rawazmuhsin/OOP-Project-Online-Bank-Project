@@ -6,7 +6,15 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.EventObject;
+import java.util.Vector;
 
+import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -21,9 +29,17 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 
 public class ApproveTransaction extends JFrame {
+    private DefaultTableModel tableModel;
+    private JTable table;
+    private final String DB_URL = "jdbc:mysql://localhost:3306/user_management";
+    private final String DB_USER = "root";
+    private final String DB_PASSWORD = "Makwan2004111";
 
+    
     public ApproveTransaction() {
         setTitle("KOB Manager - Approval Queue");
         setSize(1200, 800);
@@ -38,6 +54,9 @@ public class ApproveTransaction extends JFrame {
         // Create main content panel
         JPanel mainContentPanel = createApprovalContentPanel();
         add(new JScrollPane(mainContentPanel), BorderLayout.CENTER);
+
+        // Load pending transactions
+        loadPendingTransactions();
 
         setVisible(true);
     }
@@ -89,7 +108,15 @@ public class ApproveTransaction extends JFrame {
                 }
             });
             
-           
+            // Add action listener for the Transaction Mgmt button
+            if (item.equals("Transaction Mgmt")) {
+                menuButton.addActionListener(e -> {
+                    SwingUtilities.invokeLater(() -> {
+                        new ManageTransaction();
+                        dispose();
+                    });
+                });
+            }
             
             sidebarPanel.add(menuButton);
             yPos += 40;
@@ -117,7 +144,7 @@ public class ApproveTransaction extends JFrame {
         contentPanel.add(titleLabel);
 
         // Notification
-        JLabel notificationLabel = new JLabel("3 transactions awaiting approval");
+        JLabel notificationLabel = new JLabel("Transactions awaiting approval");
         notificationLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         notificationLabel.setForeground(new Color(220, 53, 69)); // #dc3545
         notificationLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -125,38 +152,41 @@ public class ApproveTransaction extends JFrame {
         contentPanel.add(notificationLabel);
 
         // Table
-        String[] columnNames = {"DATE", "CUSTOMER", "ACCOUNT", "AMOUNT", "TYPE", "ACTIONS"};
-        Object[][] data = {
-            {"01/03/2025", "Alice Brown", "****7890", "$300.00", "Transfer", "Approve/Reject"},
-            {"01/04/2025", "Bob Green", "****1234", "$450.00", "Withdrawal", "Approve/Reject"},
-            {"01/05/2025", "Carol White", "****5678", "$1,200.00", "Deposit", "Approve/Reject"}
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+        String[] columnNames = {"ID", "DATE", "CUSTOMER", "ACCOUNT", "AMOUNT", "TYPE", "ACTIONS"};
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 5; // Only make Actions column editable
+                return column == 6; // Only make Actions column editable
             }
         };
 
-        JTable table = new JTable(model);
+        table = new JTable(tableModel);
         table.setRowHeight(50); // Taller rows for additional info
         table.setShowGrid(false);
         table.setIntercellSpacing(new Dimension(0, 0));
         table.setFont(new Font("Arial", Font.PLAIN, 14));
         
         // Custom renderers for different columns
-        table.getColumnModel().getColumn(3).setCellRenderer(new AmountRenderer());
-        table.getColumnModel().getColumn(4).setCellRenderer(new TransactionTypeRenderer());
-        table.getColumnModel().getColumn(5).setCellRenderer(new ActionRenderer());
+        table.getColumnModel().getColumn(4).setCellRenderer(new AmountRenderer());
+        table.getColumnModel().getColumn(5).setCellRenderer(new TransactionTypeRenderer());
+        
+        // Set both renderer and editor for the Actions column
+        ActionButtonsPanel actionPanel = new ActionButtonsPanel(this);
+        table.getColumnModel().getColumn(6).setCellRenderer(actionPanel);
+        table.getColumnModel().getColumn(6).setCellEditor(actionPanel);
+        
+        // Hide the ID column (used for database operations)
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
         
         // Set column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(100);
-        table.getColumnModel().getColumn(1).setPreferredWidth(150);
-        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        table.getColumnModel().getColumn(1).setPreferredWidth(100);
+        table.getColumnModel().getColumn(2).setPreferredWidth(150);
         table.getColumnModel().getColumn(3).setPreferredWidth(100);
         table.getColumnModel().getColumn(4).setPreferredWidth(100);
-        table.getColumnModel().getColumn(5).setPreferredWidth(200);
+        table.getColumnModel().getColumn(5).setPreferredWidth(100);
+        table.getColumnModel().getColumn(6).setPreferredWidth(200);
 
         // Style table header
         JTableHeader header = table.getTableHeader();
@@ -166,42 +196,14 @@ public class ApproveTransaction extends JFrame {
         header.setBorder(BorderFactory.createEmptyBorder());
         header.setReorderingAllowed(false);
 
-        // Add additional info to rows
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                JPanel panel = new JPanel(new BorderLayout());
-                JLabel label = new JLabel(value.toString());
-                label.setFont(new Font("Arial", Font.PLAIN, 14));
-                label.setForeground(new Color(52, 58, 64)); // #343a40
-                panel.add(label, BorderLayout.NORTH);
-                
-                // Add additional info for each row
-                if (column == 1) {
-                    String[] additionalInfo = {
-                        "To: ****4567 | Memo: \"Rent payment\"",
-                        "ATM Withdrawal | Location: Main St Branch",
-                        "Check Deposit | Check #1024"
-                    };
-                    JLabel infoLabel = new JLabel(additionalInfo[row]);
-                    infoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-                    infoLabel.setForeground(new Color(108, 117, 125)); // #6c757d
-                    panel.add(infoLabel, BorderLayout.SOUTH);
-                }
-                
-                return panel;
-            }
-        });
-
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         contentPanel.add(scrollPane);
 
         // Bulk Action Buttons
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 20));
-        actionPanel.setBackground(Color.WHITE);
-        actionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel actionnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 20));
+        actionnPanel.setBackground(Color.WHITE);
+        actionnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton approveAllButton = new JButton("Approve All");
         approveAllButton.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -209,8 +211,8 @@ public class ApproveTransaction extends JFrame {
         approveAllButton.setForeground(new Color(13, 110, 253)); // #0d6efd
         approveAllButton.setBorder(BorderFactory.createLineBorder(new Color(230, 255, 250)));
         approveAllButton.setFocusPainted(false);
-        approveAllButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "All transactions approved!"));
-        actionPanel.add(approveAllButton);
+        approveAllButton.addActionListener(e -> approveAllTransactions());
+        actionnPanel.add(approveAllButton);
 
         JButton rejectAllButton = new JButton("Reject All");
         rejectAllButton.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -218,10 +220,10 @@ public class ApproveTransaction extends JFrame {
         rejectAllButton.setForeground(new Color(220, 53, 69)); // #dc3545
         rejectAllButton.setBorder(BorderFactory.createLineBorder(new Color(255, 236, 236)));
         rejectAllButton.setFocusPainted(false);
-        rejectAllButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "All transactions rejected!"));
-        actionPanel.add(rejectAllButton);
+        rejectAllButton.addActionListener(e -> rejectAllTransactions());
+        actionnPanel.add(rejectAllButton);
 
-        contentPanel.add(actionPanel);
+        contentPanel.add(actionnPanel);
 
         // Dashboard Button
         JButton dashboardButton = new JButton("← Dashboard");
@@ -233,12 +235,185 @@ public class ApproveTransaction extends JFrame {
         dashboardButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         dashboardButton.addActionListener(e -> {
             dispose();
-           
+            // Navigate to Dashboard (add implementation)
         });
         contentPanel.add(dashboardButton);
 
         mainPanel.add(contentPanel, BorderLayout.NORTH);
         return mainPanel;
+    }
+
+    // Load pending transactions from database
+    private void loadPendingTransactions() {
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            String query = "SELECT t.transaction_id, t.transaction_date, u.username, " +
+                          "a.account_number, t.amount, t.transaction_type, t.description " +
+                          "FROM transactions t " +
+                          "JOIN users u ON t.user_id = u.user_id " +
+                          "JOIN accounts a ON t.account_id = a.account_id " +
+                          "WHERE t.status = 'PENDING' " +
+                          "ORDER BY t.transaction_date DESC";
+            
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            ResultSet rs = pstmt.executeQuery();
+            
+            // Clear existing data
+            tableModel.setRowCount(0);
+            
+            // Add new data
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>();
+                row.add(rs.getInt("transaction_id"));
+                row.add(rs.getDate("transaction_date"));
+                row.add(rs.getString("username"));
+                
+                // Mask account number for security
+                String accountNumber = rs.getString("account_number");
+                String maskedAccount = "****" + accountNumber.substring(Math.max(0, accountNumber.length() - 4));
+                row.add(maskedAccount);
+                
+                row.add(rs.getDouble("amount"));
+                row.add(rs.getString("transaction_type"));
+                row.add("Pending"); // This will be replaced by the ActionRenderer
+                
+                tableModel.addRow(row);
+            }
+            
+            // Update notification label with count
+            int pendingCount = tableModel.getRowCount();
+            JLabel notificationLabel = (JLabel) ((JPanel) ((JScrollPane) getContentPane().getComponent(1)).getViewport().getView()).getComponent(1);
+            notificationLabel.setText(pendingCount + " transactions awaiting approval");
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error loading pending transactions: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    // Approve a specific transaction
+    public void approveTransaction(int transactionId) {
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            // First, update the transaction status
+            String updateQuery = "UPDATE transactions SET status = 'APPROVED', approval_date = NOW() WHERE transaction_id = ?";
+            PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+            updateStmt.setInt(1, transactionId);
+            updateStmt.executeUpdate();
+            
+            // Then, update the account balance based on the transaction type
+            String accountQuery = "SELECT t.account_id, t.amount, t.transaction_type, a.balance " +
+                                 "FROM transactions t JOIN accounts a ON t.account_id = a.account_id " +
+                                 "WHERE t.transaction_id = ?";
+            PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
+            accountStmt.setInt(1, transactionId);
+            ResultSet rs = accountStmt.executeQuery();
+            
+            if (rs.next()) {
+                int accountId = rs.getInt("account_id");
+                double amount = rs.getDouble("amount");
+                String type = rs.getString("transaction_type");
+                double currentBalance = rs.getDouble("balance");
+                double newBalance = currentBalance;
+                
+                // Update balance based on transaction type
+                if (type.equals("DEPOSIT")) {
+                    newBalance = currentBalance + amount;
+                } else if (type.equals("WITHDRAW")) {
+                    newBalance = currentBalance - amount;
+                } else if (type.equals("TRANSFER")) {
+                    // For transfers, we need to handle both accounts
+                    newBalance = currentBalance - amount;
+                    
+                    // Get the destination account and update its balance
+                    String transferQuery = "SELECT destination_account_id FROM transfers WHERE transaction_id = ?";
+                    PreparedStatement transferStmt = conn.prepareStatement(transferQuery);
+                    transferStmt.setInt(1, transactionId);
+                    ResultSet transferRs = transferStmt.executeQuery();
+                    
+                    if (transferRs.next()) {
+                        int destAccountId = transferRs.getInt("destination_account_id");
+                        
+                        // Get destination account balance
+                        String destBalanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+                        PreparedStatement destBalanceStmt = conn.prepareStatement(destBalanceQuery);
+                        destBalanceStmt.setInt(1, destAccountId);
+                        ResultSet destBalanceRs = destBalanceStmt.executeQuery();
+                        
+                        if (destBalanceRs.next()) {
+                            double destBalance = destBalanceRs.getDouble("balance");
+                            double newDestBalance = destBalance + amount;
+                            
+                            // Update destination account balance
+                            String updateDestQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                            PreparedStatement updateDestStmt = conn.prepareStatement(updateDestQuery);
+                            updateDestStmt.setDouble(1, newDestBalance);
+                            updateDestStmt.setInt(2, destAccountId);
+                            updateDestStmt.executeUpdate();
+                        }
+                    }
+                }
+                
+                // Update source account balance
+                String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                PreparedStatement updateBalanceStmt = conn.prepareStatement(updateBalanceQuery);
+                updateBalanceStmt.setDouble(1, newBalance);
+                updateBalanceStmt.setInt(2, accountId);
+                updateBalanceStmt.executeUpdate();
+            }
+            
+            JOptionPane.showMessageDialog(this, "Transaction approved successfully", "Approved", JOptionPane.INFORMATION_MESSAGE);
+            loadPendingTransactions(); // Refresh the list
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error approving transaction: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    // Reject a specific transaction
+    public void rejectTransaction(int transactionId) {
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            String updateQuery = "UPDATE transactions SET status = 'REJECTED', approval_date = NOW() WHERE transaction_id = ?";
+            PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+            updateStmt.setInt(1, transactionId);
+            updateStmt.executeUpdate();
+            
+            JOptionPane.showMessageDialog(this, "Transaction rejected", "Rejected", JOptionPane.INFORMATION_MESSAGE);
+            loadPendingTransactions(); // Refresh the list
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error rejecting transaction: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    // Approve all pending transactions
+    private void approveAllTransactions() {
+        int response = JOptionPane.showConfirmDialog(this, 
+                "Are you sure you want to approve all pending transactions?", 
+                "Confirm Approval", 
+                JOptionPane.YES_NO_OPTION);
+        
+        if (response == JOptionPane.YES_OPTION) {
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                int transactionId = (int) tableModel.getValueAt(i, 0);
+                approveTransaction(transactionId);
+            }
+        }
+    }
+    
+    // Reject all pending transactions
+    private void rejectAllTransactions() {
+        int response = JOptionPane.showConfirmDialog(this, 
+                "Are you sure you want to reject all pending transactions?", 
+                "Confirm Rejection", 
+                JOptionPane.YES_NO_OPTION);
+        
+        if (response == JOptionPane.YES_OPTION) {
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                int transactionId = (int) tableModel.getValueAt(i, 0);
+                rejectTransaction(transactionId);
+            }
+        }
     }
 
     // Custom renderer for Amount column
@@ -250,13 +425,21 @@ public class ApproveTransaction extends JFrame {
                     table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.RIGHT);
             
-            // Color amounts based on transaction type (simplified logic)
-            String type = table.getValueAt(row, 4).toString();
-            if (type.equals("Deposit")) {
-                label.setForeground(new Color(0, 128, 0)); // Green for deposits
-            } else {
-                label.setForeground(new Color(220, 53, 69)); // Red for withdrawals/transfers
+            // Format amount with dollar sign and two decimal places
+            if (value instanceof Double) {
+                double amount = (Double) value;
+                String formattedAmount = String.format("$%.2f", amount);
+                label.setText(formattedAmount);
+                
+                // Color amounts based on transaction type
+                String type = table.getValueAt(row, 5).toString();
+                if (type.equals("DEPOSIT")) {
+                    label.setForeground(new Color(0, 128, 0)); // Green for deposits
+                } else {
+                    label.setForeground(new Color(220, 53, 69)); // Red for withdrawals/transfers
+                }
             }
+            
             return label;
         }
     }
@@ -271,7 +454,7 @@ public class ApproveTransaction extends JFrame {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setOpaque(true);
 
-            if (value.equals("Deposit")) {
+            if (value.equals("DEPOSIT")) {
                 label.setBackground(new Color(230, 255, 250)); // #e6fffa
                 label.setForeground(new Color(13, 110, 253)); // #0d6efd
             } else {
@@ -283,40 +466,72 @@ public class ApproveTransaction extends JFrame {
         }
     }
 
-    // Custom renderer for Action column
-    private static class ActionRenderer extends DefaultTableCellRenderer {
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+    // Custom combined renderer and editor for Action column with buttons
+    private static class ActionButtonsPanel extends AbstractCellEditor implements TableCellRenderer, TableCellEditor {
+        private JPanel panel;
+        private JButton approveButton;
+        private JButton rejectButton;
+        private ApproveTransaction parent;
+        private int currentTransactionId;
+        
+        public ActionButtonsPanel(ApproveTransaction parent) {
+            this.parent = parent;
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
             panel.setOpaque(true);
-            panel.setBackground(table.getBackground());
-
-            JButton approveButton = new JButton("Approve");
+            
+            approveButton = new JButton("Approve");
             approveButton.setFont(new Font("Arial", Font.PLAIN, 12));
             approveButton.setBackground(new Color(230, 255, 250)); // #e6fffa
             approveButton.setForeground(new Color(13, 110, 253)); // #0d6efd
             approveButton.setBorder(BorderFactory.createLineBorder(new Color(230, 255, 250)));
             approveButton.setFocusPainted(false);
-            approveButton.addActionListener(e -> {
-                JOptionPane.showMessageDialog(table, "Transaction approved!");
-                // Here you would update the table/model to remove the approved row
-            });
-
-            JButton rejectButton = new JButton("Reject");
+            
+            rejectButton = new JButton("Reject");
             rejectButton.setFont(new Font("Arial", Font.PLAIN, 12));
             rejectButton.setBackground(new Color(255, 236, 236)); // #ffecec
             rejectButton.setForeground(new Color(220, 53, 69)); // #dc3545
             rejectButton.setBorder(BorderFactory.createLineBorder(new Color(255, 236, 236)));
             rejectButton.setFocusPainted(false);
-            rejectButton.addActionListener(e -> {
-                JOptionPane.showMessageDialog(table, "Transaction rejected!");
-                // Here you would update the table/model to remove the rejected row
+            
+            // Add action listeners
+            approveButton.addActionListener(e -> {
+                parent.approveTransaction(currentTransactionId);
+                fireEditingStopped();
             });
-
+            
+            rejectButton.addActionListener(e -> {
+                parent.rejectTransaction(currentTransactionId);
+                fireEditingStopped();
+            });
+            
             panel.add(approveButton);
             panel.add(rejectButton);
+        }
+        
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            panel.setBackground(table.getBackground());
             return panel;
+        }
+        
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                boolean isSelected, int row, int column) {
+            // Store the transaction ID for the action buttons
+            currentTransactionId = (int) table.getValueAt(row, 0);
+            panel.setBackground(table.getSelectionBackground());
+            return panel;
+        }
+        
+        @Override
+        public Object getCellEditorValue() {
+            return "Pending";
+        }
+        
+        @Override
+        public boolean isCellEditable(EventObject e) {
+            return true;
         }
     }
 
