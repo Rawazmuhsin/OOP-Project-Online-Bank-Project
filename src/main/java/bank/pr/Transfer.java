@@ -9,6 +9,12 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -17,6 +23,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -24,6 +31,11 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
 public class Transfer extends JFrame {
+    private JTextField amountField;
+    private JTextField toAccountField;
+    private JTextField fromAccountField;
+    private int accountId = 10; // Default source account ID (Rawaz's account)
+    private String userName = "Rawaz.muhsin"; // Default user name
 
     public Transfer() {
         setTitle("Transfer Funds -  Kurdish - O - Banking (KOB)");
@@ -43,7 +55,9 @@ public class Transfer extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        String[] menuItems = {"Transfer", "Dashboard", "Accounts", "Deposit", "Withdraw"};
+        String[] menuItems = {"Transfer", "Dashboard", "Accounts", "Deposit", "Withdraw", "Transactions"};
+        
+        sidebar.add(titleLabel);
         for (String item : menuItems) {
             JButton button = new JButton(item);
             button.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -87,8 +101,8 @@ public class Transfer extends JFrame {
         JPanel transferTypePanel = new JPanel(new GridLayout(1, 2, 20, 10));
         transferTypePanel.setOpaque(false);
 
-        JRadioButton internal = new JRadioButton("Between My Accounts");
-        JRadioButton external = new JRadioButton("To Another Person");
+        JRadioButton internal = new JRadioButton();
+        JRadioButton external = new JRadioButton();
         ButtonGroup group = new ButtonGroup();
         group.add(internal);
         group.add(external);
@@ -103,31 +117,31 @@ public class Transfer extends JFrame {
         // From Account
         JLabel fromLabel = new JLabel("From Account");
         fromLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JTextField fromField = new JTextField("Checking - ****1234");
-        fromField.setPreferredSize(new Dimension(300, 30));
-        fromField.setEditable(false);
-        fromField.setBackground(Color.WHITE);
+        fromAccountField = new JTextField("Checking - Account ID: " + accountId);
+        fromAccountField.setPreferredSize(new Dimension(300, 30));
+        fromAccountField.setEditable(false);
+        fromAccountField.setBackground(Color.WHITE);
 
         content.add(fromLabel);
         content.add(Box.createVerticalStrut(5));
-        content.add(fromField);
+        content.add(fromAccountField);
         content.add(Box.createVerticalStrut(20));
 
         // To Account
-        JLabel toLabel = new JLabel("To Account");
+        JLabel toLabel = new JLabel("To Account (Enter recipient's account ID)");
         toLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JTextField toField = new JTextField();
-        toField.setPreferredSize(new Dimension(300, 30));
+        toAccountField = new JTextField();
+        toAccountField.setPreferredSize(new Dimension(300, 30));
 
         content.add(toLabel);
         content.add(Box.createVerticalStrut(5));
-        content.add(toField);
+        content.add(toAccountField);
         content.add(Box.createVerticalStrut(20));
 
         // Amount Section
         JLabel amountLabel = new JLabel("Amount");
         amountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JTextField amountField = new JTextField();
+        amountField = new JTextField();
         amountField.setPreferredSize(new Dimension(300, 30));
 
         content.add(amountLabel);
@@ -171,7 +185,7 @@ public class Transfer extends JFrame {
         transferBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                processTransfer(fromField.getText(), toField.getText(), amountField.getText());
+                handleTransferSubmit();
             }
         });
 
@@ -180,63 +194,84 @@ public class Transfer extends JFrame {
         // Frame Layout
         add(sidebar, BorderLayout.WEST);
         add(new JScrollPane(content), BorderLayout.CENTER);
+        
         setVisible(true);
     }
 
     private JPanel wrapRadioPanel(String title, String subtitle, JRadioButton button) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 255)),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(new Color(180, 180, 255)),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         panel.setBackground(Color.WHITE);
+        panel.setPreferredSize(new Dimension(200, 70));
+
+        button.setText("<html><b>" + title + "</b><br><span style='font-size:10px;color:gray'>" + subtitle + "</span></html>");
         button.setOpaque(false);
-
-        JLabel label = new JLabel(title);
-        label.setFont(new Font("SansSerif", Font.BOLD, 14));
-
-        JLabel sub = new JLabel(subtitle);
-        sub.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        sub.setForeground(Color.GRAY);
-
-        panel.add(button);
-        panel.add(label);
-        panel.add(sub);
-
+        button.setFocusPainted(false);
+        button.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        panel.add(button, BorderLayout.CENTER);
         return panel;
     }
 
-    // Method to handle navigation between pages
+    // Method to set user info
+    public void setUserInfo(String userName, int accountId) {
+        this.userName = userName;
+        this.accountId = accountId;
+        
+        // Update from account field with the account ID
+        if (fromAccountField != null) {
+            fromAccountField.setText("Checking - Account ID: " + accountId);
+        }
+    }
+
+    // Method to handle navigation
     private void handleNavigation(String destination) {
         this.dispose(); // Close current window
 
         // Open the selected page
         switch (destination) {
             case "Dashboard":
-            SwingUtilities.invokeLater(() -> {
-                Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo("John Doe", 12345); // Optionally set user info if needed
-                dashboard.setVisible(true); // Ensure the Dashboard is visible
-            });
-            break;
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, accountId);
+                    dashboard.setVisible(true);
+                });
+                break;
             case "Deposit":
-                SwingUtilities.invokeLater(Deposite::new);
+                SwingUtilities.invokeLater(() -> {
+                    Deposite deposit = new Deposite();
+                    deposit.setUserInfo(userName, accountId);
+                    deposit.setVisible(true);
+                });
                 break;
             case "Withdraw":
-                SwingUtilities.invokeLater(Withdraw::new);
+                SwingUtilities.invokeLater(() -> {
+                    Withdraw withdraw = new Withdraw();
+                    withdraw.setUserInfo(userName, accountId);
+                    withdraw.setVisible(true);
+                });
                 break;
             case "Transfer":
                 // Already on this page, do nothing or refresh
-                SwingUtilities.invokeLater(Transfer::new);
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transfer = new Transfer();
+                    transfer.setUserInfo(userName, accountId);
+                    transfer.setVisible(true);
+                });
                 break;
-                case "Accounts":
-                // Go to User Profile page
+            case "Transactions":
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transaction = new Transaction(accountId, userName);
+                    transaction.setVisible(true);
+                });
+                break;
+            case "Accounts":
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    // userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setUserInfo(userName, accountId);
                     userProfile.setVisible(true);
-                    this.dispose(); // Close the current Dashboard window
                 });
                 break;
             default:
@@ -245,24 +280,166 @@ public class Transfer extends JFrame {
         }
     }
 
-    // Method to process transfer
-    private void processTransfer(String fromAccount, String toAccount, String amount) {
+    // Method to handle transfer submission
+    private void handleTransferSubmit() {
+        String amount = amountField.getText();
+        String toAccount = toAccountField.getText();
+        
+        if (amount.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter an amount to transfer", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (toAccount.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter a destination account ID", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Validate that the account ID is a number
+        int destinationAccountId;
+        try {
+            destinationAccountId = Integer.parseInt(toAccount);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, 
+                    "Please enter a valid account ID (should be a number)", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         try {
             double transferAmount = Double.parseDouble(amount);
-            System.out.println("Transfer initiated:");
-            System.out.println("From: " + fromAccount);
-            System.out.println("To: " + toAccount);
-            System.out.println("Amount: $" + transferAmount);
-
-            // Show success message
-            System.out.println("Transfer successful!");
-
-            // Return to dashboard
-            this.dispose();
-            SwingUtilities.invokeLater(Dashbord::new);
+            
+            if (transferAmount <= 0) {
+                JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            boolean success = createPendingTransfer(transferAmount, destinationAccountId);
+            
+            if (success) {
+                JOptionPane.showMessageDialog(this, 
+                        "Transfer of $" + transferAmount + " to account ID " + destinationAccountId + " has been submitted and is pending approval.",
+                        "Transfer Pending", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+                // Navigate back to dashboard
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, accountId);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to process transfer. Please verify the destination account ID and try again.", 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+            
         } catch (NumberFormatException e) {
-            System.err.println("Invalid amount entered: " + amount);
-            // In a real app, you would show an error dialog here
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    // Method to create a pending transfer in the transactions table
+    private boolean createPendingTransfer(double amount, int destinationAccountId) {
+        Connection conn = null;
+        
+        try {
+            System.out.println("==== Starting transfer operation ====");
+            System.out.println("Source account ID: " + accountId);
+            System.out.println("Destination account ID: " + destinationAccountId);
+            System.out.println("Transfer amount: $" + amount);
+            
+            // Make sure we don't transfer to the same account
+            if (accountId == destinationAccountId) {
+                System.out.println("ERROR: Cannot transfer to the same account");
+                JOptionPane.showMessageDialog(this, "Cannot transfer to the same account", "Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+            
+            conn = DatabaseConnection.getConnection();
+            System.out.println("Connected to database");
+            
+            // Verify that both accounts exist
+            String checkAccountsQuery = "SELECT account_id FROM accounts WHERE account_id = ?";
+            PreparedStatement checkSourceStmt = conn.prepareStatement(checkAccountsQuery);
+            checkSourceStmt.setInt(1, accountId);
+            ResultSet sourceRs = checkSourceStmt.executeQuery();
+            
+            if (!sourceRs.next()) {
+                System.out.println("ERROR: Source account not found");
+                return false;
+            }
+            
+            PreparedStatement checkDestStmt = conn.prepareStatement(checkAccountsQuery);
+            checkDestStmt.setInt(1, destinationAccountId);
+            ResultSet destRs = checkDestStmt.executeQuery();
+            
+            if (!destRs.next()) {
+                System.out.println("ERROR: Destination account not found");
+                return false;
+            }
+            
+            // Check if current account has sufficient funds
+            String balanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+            PreparedStatement balanceStmt = conn.prepareStatement(balanceQuery);
+            balanceStmt.setInt(1, accountId);
+            ResultSet balanceRs = balanceStmt.executeQuery();
+            
+            if (balanceRs.next()) {
+                double currentBalance = balanceRs.getDouble("balance");
+                System.out.println("Current balance: $" + currentBalance);
+                
+                if (currentBalance < amount) {
+                    System.out.println("ERROR: Insufficient funds");
+                    JOptionPane.showMessageDialog(this, "Insufficient funds. Current balance: $" + currentBalance, "Error", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+            }
+            
+            // Create a pending transaction
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String currentDate = sdf.format(new Date());
+            
+            // Insert into transactions table
+            String transactionSql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
+                               "VALUES (?, ?, ?, ?, ?, ?)";
+                               
+            PreparedStatement transactionStmt = conn.prepareStatement(transactionSql);
+            transactionStmt.setInt(1, accountId);
+            transactionStmt.setString(2, "TRANSFER");
+            transactionStmt.setDouble(3, amount);
+            transactionStmt.setString(4, currentDate);
+            transactionStmt.setString(5, "Transfer to account ID " + destinationAccountId);
+            transactionStmt.setString(6, TransactionStatus.PENDING);
+            
+            int rowsAffected = transactionStmt.executeUpdate();
+            System.out.println("Transaction inserted, rows affected: " + rowsAffected);
+            
+            // Store destination account ID in the description
+            // This way the ApproveTransaction class can extract it when needed
+            
+            if (rowsAffected > 0) {
+                return true;
+            } else {
+                System.out.println("ERROR: Failed to insert transaction");
+                return false;
+            }
+            
+        } catch (SQLException e) {
+            System.out.println("ERROR: Database exception: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

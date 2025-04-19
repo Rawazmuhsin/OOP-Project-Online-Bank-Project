@@ -9,6 +9,12 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -96,8 +102,8 @@ public class Withdraw extends JFrame {
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
         methodPanel.setOpaque(false);
 
-        JRadioButton bankTransfer = new JRadioButton("Bank Account");
-        JRadioButton card = new JRadioButton("Debit Card");
+        JRadioButton bankTransfer = new JRadioButton();
+        JRadioButton card = new JRadioButton();
 
         ButtonGroup methodGroup = new ButtonGroup();
         methodGroup.add(bankTransfer);
@@ -185,25 +191,19 @@ public class Withdraw extends JFrame {
     }
 
     private JPanel wrapRadioPanel(String title, String subtitle, JRadioButton button) {
-        JPanel panel = new JPanel();
-        panel.setBackground(Color.WHITE);
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(180, 180, 255)),
             BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
+        panel.setBackground(Color.WHITE);
+        panel.setPreferredSize(new Dimension(200, 70));
 
-        JLabel label = new JLabel(title);
-        label.setFont(new Font("SansSerif", Font.BOLD, 14));
-        JLabel sub = new JLabel(subtitle);
-        sub.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        sub.setForeground(Color.GRAY);
-
+        button.setText("<html><b>" + title + "</b><br><span style='font-size:10px;color:gray'>" + subtitle + "</span></html>");
         button.setOpaque(false);
-
-        panel.add(button);
-        panel.add(label);
-        panel.add(sub);
+        button.setFocusPainted(false);
+        button.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        panel.add(button, BorderLayout.CENTER);
         return panel;
     }
     
@@ -229,6 +229,7 @@ public class Withdraw extends JFrame {
             case "Deposit":
                 SwingUtilities.invokeLater(() -> {
                     Deposite depositScreen = new Deposite();
+                    depositScreen.setUserInfo(userName, userId);
                     depositScreen.setVisible(true);
                     this.dispose();
                 });
@@ -250,13 +251,12 @@ public class Withdraw extends JFrame {
                     this.dispose();
                 });
                 break;
-                case "Accounts":
-                // Go to User Profile page
+            case "Accounts":
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setUserInfo(userName, userId);
                     userProfile.setVisible(true);
-                    this.dispose(); // Close the current Dashboard window
+                    this.dispose();
                 });
                 break;
             default:
@@ -281,37 +281,72 @@ public class Withdraw extends JFrame {
                 return;
             }
             
-            // Process withdrawal (simulated)
-            double accountBalance = 3000.00; // Simulated balance
+            boolean success = saveTransaction(amountValue, description);
             
-            if (amountValue > accountBalance) {
+            if (success) {
                 JOptionPane.showMessageDialog(this, 
-                        "Insufficient funds. Your current balance is $" + accountBalance, 
+                        "Withdrawal of $" + amountValue + " has been submitted and is pending approval.", 
+                        "Withdrawal Pending", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                    this.dispose();
+                });
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to process withdrawal. Please try again.", 
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
-                return;
             }
-            
-            System.out.println("Withdrawal Requested:");
-            System.out.println("Amount: $" + amountValue);
-            System.out.println("Description: " + description);
-            
-            // Show success message
-            JOptionPane.showMessageDialog(this, 
-                    "Withdrawal of $" + amountValue + " was successful!", 
-                    "Withdrawal Successful", 
-                    JOptionPane.INFORMATION_MESSAGE);
-            
-            // Navigate back to dashboard
-            SwingUtilities.invokeLater(() -> {
-                Dashbord dashboard = new Dashbord();
-                dashboard.setUserInfo(userName, userId);
-                dashboard.setVisible(true);
-                this.dispose();
-            });
             
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private boolean saveTransaction(double amount, String description) {
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String currentDate = sdf.format(new Date());
+            
+            // First get the account_id for this user
+            int accountId;
+            String accountQuery = "SELECT account_id FROM accounts WHERE user_id = ? LIMIT 1";
+            PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
+            accountStmt.setInt(1, userId);
+            ResultSet rs = accountStmt.executeQuery();
+            
+            if (rs.next()) {
+                accountId = rs.getInt("account_id");
+            } else {
+                // No account found for this user
+                return false;
+            }
+            
+            String sql = "INSERT INTO transactions (account_id, user_id, transaction_type, amount, transaction_date, description, status) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, accountId);
+            pstmt.setInt(2, userId);
+            pstmt.setString(3, "WITHDRAW");
+            pstmt.setDouble(4, amount);
+            pstmt.setString(5, currentDate);
+            pstmt.setString(6, description);
+            pstmt.setString(7, TransactionStatus.PENDING);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            pstmt.close();
+            
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
         }
     }
 
