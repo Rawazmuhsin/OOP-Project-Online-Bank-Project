@@ -335,6 +335,7 @@ public class ApproveTransaction extends JFrame {
             tableModel.setRowCount(0);
 
             // Add new data
+            int rowCount = 0;
             while (rs.next()) {
                 Vector<Object> row = new Vector<>();
                 row.add(rs.getInt("transaction_id"));
@@ -347,6 +348,7 @@ public class ApproveTransaction extends JFrame {
                 row.add(rs.getString("transaction_type"));
                 row.add("Pending"); // This will be replaced by the ActionRenderer
                 tableModel.addRow(row);
+                rowCount++;
             }
 
             // Update notification label with count
@@ -378,150 +380,254 @@ public class ApproveTransaction extends JFrame {
     }
 
     // Approve a specific transaction
-    public void approveTransaction(int transactionId) {
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+  // Fixed approve transaction method
+public void approveTransaction(int transactionId) {
+    Connection conn = null;
+    try {
+        conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
 
-            // First, get the transaction details
-            String transactionQuery = "SELECT t.account_id, t.amount, t.transaction_type, t.description, a.balance " +
-                    "FROM transactions t JOIN accounts a ON t.account_id = a.account_id " +
-                    "WHERE t.transaction_id = ?";
-            PreparedStatement transactionStmt = conn.prepareStatement(transactionQuery);
-            transactionStmt.setInt(1, transactionId);
-            ResultSet rs = transactionStmt.executeQuery();
+        // Start by getting only the transaction details (not joining with accounts yet)
+        String transactionQuery = "SELECT transaction_id, account_id, amount, transaction_type, description, status " +
+                "FROM transactions WHERE transaction_id = ?";
+        PreparedStatement transactionStmt = conn.prepareStatement(transactionQuery);
+        transactionStmt.setInt(1, transactionId);
+        ResultSet rs = transactionStmt.executeQuery();
 
-            if (rs.next()) {
-                int accountId = rs.getInt("account_id");
-                double amount = rs.getDouble("amount");
-                String type = rs.getString("transaction_type");
-                String description = rs.getString("description");
-                double currentBalance = rs.getDouble("balance");
-                double newBalance = currentBalance;
+        if (rs.next()) {
+            int accountId = rs.getInt("account_id");
+            double amount = rs.getDouble("amount");
+            String type = rs.getString("transaction_type");
+            String description = rs.getString("description");
+            String status = rs.getString("status");
 
-                System.out.println("Approving transaction: " + transactionId);
-                System.out.println("Type: " + type);
-                System.out.println("Amount: $" + amount);
-                System.out.println("Source Account ID: " + accountId);
-                System.out.println("Current Source Balance: $" + currentBalance);
-
-                // Start a transaction to ensure all updates happen atomically
-                conn.setAutoCommit(false);
-                try {
-                    // Update balance based on transaction type
-                    if (type.equals("DEPOSIT")) {
-                        newBalance = currentBalance + amount;
-                        System.out.println("Deposit - New Balance: $" + newBalance);
-                    } else if (type.equals("WITHDRAW")) {
-                        newBalance = currentBalance - amount;
-                        System.out.println("Withdraw - New Balance: $" + newBalance);
-                    } else if (type.equals("TRANSFER")) {
-                        // For transfers, we need to handle both accounts
-                        newBalance = currentBalance - amount;
-                        System.out.println("Transfer - New Source Balance: $" + newBalance);
-
-                        // Extract destination account ID from description
-                        int destAccountId = extractDestinationAccountId(description);
-                        System.out.println("Destination Account ID: " + destAccountId);
-
-                        if (destAccountId > 0) {
-                            // Get destination account balance
-                            String destBalanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
-                            PreparedStatement destBalanceStmt = conn.prepareStatement(destBalanceQuery);
-                            destBalanceStmt.setInt(1, destAccountId);
-                            ResultSet destBalanceRs = destBalanceStmt.executeQuery();
-
-                            if (destBalanceRs.next()) {
-                                double destBalance = destBalanceRs.getDouble("balance");
-                                double newDestBalance = destBalance + amount;
-                                System.out.println("Current Destination Balance: $" + destBalance);
-                                System.out.println("New Destination Balance: $" + newDestBalance);
-
-                                // Update destination account balance
-                                String updateDestQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
-                                PreparedStatement updateDestStmt = conn.prepareStatement(updateDestQuery);
-                                updateDestStmt.setDouble(1, newDestBalance);
-                                updateDestStmt.setInt(2, destAccountId);
-                                int destRowsAffected = updateDestStmt.executeUpdate();
-                                System.out.println("Destination update rows affected: " + destRowsAffected);
-                            } else {
-                                throw new SQLException("Destination account not found: " + destAccountId);
-                            }
-                        } else {
-                            throw new SQLException("Could not determine destination account from description: " + description);
-                        }
-                    }
-
-                    // Update source account balance
-                    String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
-                    PreparedStatement updateBalanceStmt = conn.prepareStatement(updateBalanceQuery);
-                    updateBalanceStmt.setDouble(1, newBalance);
-                    updateBalanceStmt.setInt(2, accountId);
-                    int sourceRowsAffected = updateBalanceStmt.executeUpdate();
-                    System.out.println("Source update rows affected: " + sourceRowsAffected);
-
-                    // Update transaction status
-                    String updateStatusQuery = "UPDATE transactions SET status = 'APPROVED', approval_date = NOW() WHERE transaction_id = ?";
-                    PreparedStatement updateStatusStmt = conn.prepareStatement(updateStatusQuery);
-                    updateStatusStmt.setInt(1, transactionId);
-                    int statusRowsAffected = updateStatusStmt.executeUpdate();
-                    System.out.println("Status update rows affected: " + statusRowsAffected);
-
-                    // Commit the transaction
-                    conn.commit();
-                    System.out.println("Transaction committed successfully");
-
-                    JOptionPane.showMessageDialog(this,
-                            "Transaction approved successfully",
-                            "Approved",
-                            JOptionPane.INFORMATION_MESSAGE);
-                } catch (SQLException e) {
-                    // If anything goes wrong, roll back
-                    System.out.println("ERROR: " + e.getMessage());
-                    e.printStackTrace();
-                    try {
-                        conn.rollback();
-                        System.out.println("Transaction rolled back");
-                    } catch (SQLException rollbackEx) {
-                        System.out.println("Rollback failed: " + rollbackEx.getMessage());
-                        rollbackEx.printStackTrace();
-                    }
-                    JOptionPane.showMessageDialog(this,
-                            "Error approving transaction: " + e.getMessage(),
-                            "Database Error",
-                            JOptionPane.ERROR_MESSAGE);
-                } finally {
-                    // Restore auto-commit
-                    try {
-                        conn.setAutoCommit(true);
-                    } catch (SQLException autoCommitEx) {
-                        System.out.println("Failed to restore auto-commit: " + autoCommitEx.getMessage());
-                        autoCommitEx.printStackTrace();
-                    }
-                }
+            // Verify transaction is pending
+            if (!status.equals("PENDING")) {
+                JOptionPane.showMessageDialog(this, 
+                    "This transaction has already been processed: " + status, 
+                    "Warning", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
             }
 
-            loadPendingTransactions(); // Refresh the list
+            System.out.println("==== Starting approval process ====");
+            System.out.println("Transaction ID: " + transactionId);
+            System.out.println("Type: " + type);
+            System.out.println("Amount: $" + amount);
+            System.out.println("Account ID: " + accountId);
 
-        } catch (SQLException e) {
-            System.out.println("Database error: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
+            // Now get account information separately
+            String accountQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+            PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
+            accountStmt.setInt(1, accountId);
+            ResultSet accountRs = accountStmt.executeQuery();
+            
+            if (!accountRs.next()) {
+                JOptionPane.showMessageDialog(this, 
+                    "Account ID " + accountId + " not found in the database.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            double currentBalance = accountRs.getDouble("balance");
+            System.out.println("Current Balance: $" + currentBalance);
+            
+            // Start a transaction to ensure all updates happen atomically
+            conn.setAutoCommit(false);
+            try {
+                double newBalance = currentBalance;
+                
+                // Handle different transaction types
+                if (type.equals("DEPOSIT")) {
+                    // For deposits, add the amount to the balance
+                    newBalance = currentBalance + amount;
+                    System.out.println("Deposit - New Balance: $" + newBalance);
+                    
+                    // Update the account balance
+                    String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateBalanceQuery);
+                    updateStmt.setDouble(1, newBalance);
+                    updateStmt.setInt(2, accountId);
+                    int rowsAffected = updateStmt.executeUpdate();
+                    System.out.println("Balance update rows affected: " + rowsAffected);
+                    
+                    if (rowsAffected <= 0) {
+                        throw new SQLException("Failed to update account balance. No rows affected.");
+                    }
+                    
+                } else if (type.equals("WITHDRAW")) {
+                    // For withdrawals, subtract the amount from the balance
+                    newBalance = currentBalance - amount;
+                    System.out.println("Withdraw - New Balance: $" + newBalance);
+                    
+                    // Check for sufficient funds
+                    if (newBalance < 0) {
+                        throw new SQLException("Insufficient funds for withdrawal. Current balance: $" + currentBalance);
+                    }
+                    
+                    // Update the account balance
+                    String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateBalanceQuery);
+                    updateStmt.setDouble(1, newBalance);
+                    updateStmt.setInt(2, accountId);
+                    int rowsAffected = updateStmt.executeUpdate();
+                    System.out.println("Balance update rows affected: " + rowsAffected);
+                    
+                    if (rowsAffected <= 0) {
+                        throw new SQLException("Failed to update account balance. No rows affected.");
+                    }
+                    
+                } else if (type.equals("TRANSFER")) {
+                    // For transfers, we need to handle both the source and destination accounts
+                    
+                    // Get the destination account ID from the description
+                    int destAccountId = extractDestinationAccountId(description);
+                    System.out.println("Destination Account ID: " + destAccountId);
+                    
+                    if (destAccountId <= 0) {
+                        throw new SQLException("Invalid destination account ID: " + destAccountId);
+                    }
+                    
+                    // 1. Subtract from source account
+                    newBalance = currentBalance - amount;
+                    System.out.println("Transfer - New Source Balance: $" + newBalance);
+                    
+                    // Check for sufficient funds
+                    if (newBalance < 0) {
+                        throw new SQLException("Insufficient funds for transfer. Current balance: $" + currentBalance);
+                    }
+                    
+                    // Update source account
+                    String updateSourceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                    PreparedStatement updateSourceStmt = conn.prepareStatement(updateSourceQuery);
+                    updateSourceStmt.setDouble(1, newBalance);
+                    updateSourceStmt.setInt(2, accountId);
+                    int sourceRowsAffected = updateSourceStmt.executeUpdate();
+                    System.out.println("Source balance update rows affected: " + sourceRowsAffected);
+                    
+                    if (sourceRowsAffected <= 0) {
+                        throw new SQLException("Failed to update source account balance. No rows affected.");
+                    }
+                    
+                    // 2. Add to destination account
+                    // First get the destination account balance
+                    String destBalanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+                    PreparedStatement destBalanceStmt = conn.prepareStatement(destBalanceQuery);
+                    destBalanceStmt.setInt(1, destAccountId);
+                    ResultSet destBalanceRs = destBalanceStmt.executeQuery();
+                    
+                    if (!destBalanceRs.next()) {
+                        throw new SQLException("Destination account ID " + destAccountId + " not found in the database.");
+                    }
+                    
+                    double destBalance = destBalanceRs.getDouble("balance");
+                    double newDestBalance = destBalance + amount;
+                    System.out.println("Current Destination Balance: $" + destBalance);
+                    System.out.println("New Destination Balance: $" + newDestBalance);
+                    
+                    // Update destination account
+                    String updateDestQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                    PreparedStatement updateDestStmt = conn.prepareStatement(updateDestQuery);
+                    updateDestStmt.setDouble(1, newDestBalance);
+                    updateDestStmt.setInt(2, destAccountId);
+                    int destRowsAffected = updateDestStmt.executeUpdate();
+                    System.out.println("Destination balance update rows affected: " + destRowsAffected);
+                    
+                    if (destRowsAffected <= 0) {
+                        throw new SQLException("Failed to update destination account balance. No rows affected.");
+                    }
+                }
+                
+                // Update transaction status to APPROVED
+                String updateStatusQuery = "UPDATE transactions SET status = ?, approval_date = NOW() WHERE transaction_id = ?";
+                PreparedStatement updateStatusStmt = conn.prepareStatement(updateStatusQuery);
+                updateStatusStmt.setString(1, "APPROVED");
+                updateStatusStmt.setInt(2, transactionId);
+                int statusRowsAffected = updateStatusStmt.executeUpdate();
+                System.out.println("Status update rows affected: " + statusRowsAffected);
+                
+                if (statusRowsAffected <= 0) {
+                    throw new SQLException("Failed to update transaction status. No rows affected.");
+                }
+                
+                // Verify the balance update by checking the current balance
+                PreparedStatement verifyStmt = conn.prepareStatement(accountQuery);
+                verifyStmt.setInt(1, accountId);
+                ResultSet verifyRs = verifyStmt.executeQuery();
+                if (verifyRs.next()) {
+                    double verifiedBalance = verifyRs.getDouble("balance");
+                    System.out.println("Verified balance after update: $" + verifiedBalance);
+                    
+                    if (Math.abs(verifiedBalance - newBalance) > 0.01) {
+                        System.out.println("WARNING: Balance verification failed!");
+                    } else {
+                        System.out.println("Balance verification successful!");
+                    }
+                }
+                
+                // Commit all changes
+                conn.commit();
+                System.out.println("Transaction committed successfully");
+                
+                JOptionPane.showMessageDialog(this,
+                    "Transaction approved successfully",
+                    "Approved",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (SQLException e) {
+                // Roll back in case of any error
+                System.out.println("ERROR: " + e.getMessage());
+                e.printStackTrace();
+                
+                try {
+                    conn.rollback();
+                    System.out.println("Transaction rolled back");
+                } catch (SQLException rollbackEx) {
+                    System.out.println("Rollback failed: " + rollbackEx.getMessage());
+                    rollbackEx.printStackTrace();
+                }
+                
+                JOptionPane.showMessageDialog(this,
                     "Error approving transaction: " + e.getMessage(),
                     "Database Error",
                     JOptionPane.ERROR_MESSAGE);
-        } finally {
-            // Close connection
-            if (conn != null) {
+            } finally {
+                // Restore auto-commit
                 try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
+                    conn.setAutoCommit(true);
+                } catch (SQLException autoCommitEx) {
+                    System.out.println("Failed to restore auto-commit: " + autoCommitEx.getMessage());
+                    autoCommitEx.printStackTrace();
                 }
+            }
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Transaction ID " + transactionId + " not found.",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+        
+        // Refresh the list of pending transactions
+        loadPendingTransactions();
+        
+    } catch (SQLException e) {
+        System.out.println("Database error: " + e.getMessage());
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this,
+            "Error approving transaction: " + e.getMessage(),
+            "Database Error",
+            JOptionPane.ERROR_MESSAGE);
+    } finally {
+        // Close connection
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }
-
+}
     // Reject a specific transaction
     public void rejectTransaction(int transactionId) {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {

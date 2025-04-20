@@ -37,8 +37,8 @@ public class Deposite extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int userId = 12345; // Default user ID
-    private String userName = "John Doe"; // Default user name
+    private int accountId = 10; // Default account ID
+    private String userName = "Rawaz.muhsin"; // Default user name
 
     public Deposite() {
         setTitle("Deposit Funds -  Kurdish - O - Banking (KOB)");
@@ -104,9 +104,9 @@ public class Deposite extends JFrame {
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
         methodPanel.setOpaque(false);
 
-        JRadioButton bankTransfer = new JRadioButton(); // FIXED
-        JRadioButton card = new JRadioButton(); // FIXED
-        ButtonGroup methodGroup = new ButtonGroup(); // FIXED
+        JRadioButton bankTransfer = new JRadioButton();
+        JRadioButton card = new JRadioButton();
+        ButtonGroup methodGroup = new ButtonGroup();
         methodGroup.add(bankTransfer);
         methodGroup.add(card);
         bankTransfer.setSelected(true);
@@ -206,9 +206,9 @@ public class Deposite extends JFrame {
         return panel;
     }
 
-    public void setUserInfo(String userName, int userId) {
+    public void setUserInfo(String userName, int accountId) {
         this.userName = userName;
-        this.userId = userId;
+        this.accountId = accountId;
     }
 
     private void handleButtonClick(String buttonName) {
@@ -218,7 +218,7 @@ public class Deposite extends JFrame {
             case "Dashboard":
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setUserInfo(userName, accountId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -228,7 +228,7 @@ public class Deposite extends JFrame {
             case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
                     Withdraw withdrawScreen = new Withdraw();
-                    withdrawScreen.setUserInfo(userName, userId);
+                    withdrawScreen.setUserInfo(userName, accountId);
                     withdrawScreen.setVisible(true);
                     this.dispose();
                 });
@@ -236,13 +236,14 @@ public class Deposite extends JFrame {
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, accountId);
                     transferScreen.setVisible(true);
                     this.dispose();
                 });
                 break;
             case "Transactions":
                 SwingUtilities.invokeLater(() -> {
-                    Transaction transactionScreen = new Transaction(userId, userName);
+                    Transaction transactionScreen = new Transaction(accountId, userName);
                     transactionScreen.setVisible(true);
                     this.dispose();
                 });
@@ -250,7 +251,7 @@ public class Deposite extends JFrame {
             case "Accounts":
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, userId);
+                    userProfile.setUserInfo(userName, accountId);
                     userProfile.setVisible(true);
                     this.dispose();
                 });
@@ -286,7 +287,7 @@ public class Deposite extends JFrame {
 
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setUserInfo(userName, accountId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -303,47 +304,49 @@ public class Deposite extends JFrame {
     }
 
     private boolean saveTransaction(double amount, String description) {
-    try {
-        Connection conn = DatabaseConnection.getConnection();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String currentDate = sdf.format(new Date());
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            String currentDate = sdf.format(new Date());
+            
+            System.out.println("Creating deposit transaction:");
+            System.out.println("Account ID: " + accountId);
+            System.out.println("Amount: $" + amount);
+            System.out.println("Date: " + currentDate);
+            System.out.println("Description: " + description);
 
-        // First get the account_id for this user
-        int accountId;
-        String accountQuery = "SELECT account_id FROM accounts WHERE user_id = ? LIMIT 1";
-        PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
-        accountStmt.setInt(1, userId);
-        ResultSet rs = accountStmt.executeQuery();
-        
-        if (rs.next()) {
-            accountId = rs.getInt("account_id");
-        } else {
-            // No account found for this user
+            String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, accountId);
+            pstmt.setString(2, "DEPOSIT");
+            pstmt.setDouble(3, amount);
+            pstmt.setString(4, currentDate);
+            pstmt.setString(5, description);
+            pstmt.setString(6, TransactionStatus.PENDING);
+
+            int rowsAffected = pstmt.executeUpdate();
+            pstmt.close();
+            
+            System.out.println("Transaction saved, rows affected: " + rowsAffected);
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            System.out.println("Error saving transaction: " + e.getMessage());
+            e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-
-        String sql = "INSERT INTO transactions (account_id, user_id, transaction_type, amount, transaction_date, description, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setInt(1, accountId);
-        pstmt.setInt(2, userId); 
-        pstmt.setString(3, "DEPOSIT");
-        pstmt.setDouble(4, amount);
-        pstmt.setString(5, currentDate);
-        pstmt.setString(6, description);
-        pstmt.setString(7, TransactionStatus.PENDING);
-
-        int rowsAffected = pstmt.executeUpdate();
-        pstmt.close();
-
-        return rowsAffected > 0;
-
-    } catch (SQLException e) {
-        e.printStackTrace();
-        return false;
     }
-}
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Deposite::new);

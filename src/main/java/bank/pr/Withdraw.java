@@ -35,8 +35,8 @@ public class Withdraw extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int userId = 12345; // Default user ID
-    private String userName = "John Doe"; // Default user name
+    private int accountId = 10; // Default account ID
+    private String userName = "Rawaz.muhsin"; // Default user name
 
     public Withdraw() {
         setTitle("Withdraw Funds -  Kurdish - O - Banking (KOB)");
@@ -208,9 +208,9 @@ public class Withdraw extends JFrame {
     }
     
     // Method to set user info
-    public void setUserInfo(String userName, int userId) {
+    public void setUserInfo(String userName, int accountId) {
         this.userName = userName;
-        this.userId = userId;
+        this.accountId = accountId;
     }
     
     // Method to handle button clicks
@@ -221,7 +221,7 @@ public class Withdraw extends JFrame {
             case "Dashboard":
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setUserInfo(userName, accountId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -229,7 +229,7 @@ public class Withdraw extends JFrame {
             case "Deposit":
                 SwingUtilities.invokeLater(() -> {
                     Deposite depositScreen = new Deposite();
-                    depositScreen.setUserInfo(userName, userId);
+                    depositScreen.setUserInfo(userName, accountId);
                     depositScreen.setVisible(true);
                     this.dispose();
                 });
@@ -240,13 +240,14 @@ public class Withdraw extends JFrame {
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, accountId);
                     transferScreen.setVisible(true);
                     this.dispose();
                 });
                 break;
             case "Transactions":
                 SwingUtilities.invokeLater(() -> {
-                    Transaction transactionScreen = new Transaction(userId, userName);
+                    Transaction transactionScreen = new Transaction(accountId, userName);
                     transactionScreen.setVisible(true);
                     this.dispose();
                 });
@@ -254,7 +255,7 @@ public class Withdraw extends JFrame {
             case "Accounts":
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, userId);
+                    userProfile.setUserInfo(userName, accountId);
                     userProfile.setVisible(true);
                     this.dispose();
                 });
@@ -291,7 +292,7 @@ public class Withdraw extends JFrame {
                 
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setUserInfo(userName, accountId);
                     dashboard.setVisible(true);
                     this.dispose();
                 });
@@ -308,49 +309,72 @@ public class Withdraw extends JFrame {
     }
     
     private boolean saveTransaction(double amount, String description) {
+        Connection conn = null;
         try {
-            Connection conn = DatabaseConnection.getConnection();
+            conn = DatabaseConnection.getConnection();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String currentDate = sdf.format(new Date());
             
-            // First get the account_id for this user
-            int accountId;
-            String accountQuery = "SELECT account_id FROM accounts WHERE user_id = ? LIMIT 1";
-            PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
-            accountStmt.setInt(1, userId);
-            ResultSet rs = accountStmt.executeQuery();
+            System.out.println("Creating withdrawal transaction:");
+            System.out.println("Account ID: " + accountId);
+            System.out.println("Amount: $" + amount);
+            System.out.println("Date: " + currentDate);
+            System.out.println("Description: " + description);
+
+            // Check if account has sufficient funds
+            String balanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+            PreparedStatement balanceStmt = conn.prepareStatement(balanceQuery);
+            balanceStmt.setInt(1, accountId);
+            ResultSet balanceRs = balanceStmt.executeQuery();
             
-            if (rs.next()) {
-                accountId = rs.getInt("account_id");
+            if (balanceRs.next()) {
+                double currentBalance = balanceRs.getDouble("balance");
+                System.out.println("Current balance: $" + currentBalance);
+                
+                if (currentBalance < amount) {
+                    System.out.println("ERROR: Insufficient funds");
+                    JOptionPane.showMessageDialog(this, "Insufficient funds. Current balance: $" + currentBalance, "Error", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
             } else {
-                // No account found for this user
+                System.out.println("ERROR: Account not found");
                 return false;
             }
-            
-            String sql = "INSERT INTO transactions (account_id, user_id, transaction_type, amount, transaction_date, description, status) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
-            
+
+            // Insert the transaction with pending status
+            String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, accountId);
-            pstmt.setInt(2, userId);
-            pstmt.setString(3, "WITHDRAW");
-            pstmt.setDouble(4, amount);
-            pstmt.setString(5, currentDate);
-            pstmt.setString(6, description);
-            pstmt.setString(7, TransactionStatus.PENDING);
-            
+            pstmt.setString(2, "Withdrawal");  // Changed from "WITHDRAW"
+            pstmt.setDouble(3, amount);
+            pstmt.setString(4, currentDate);
+            pstmt.setString(5, description);
+            pstmt.setString(6, TransactionStatus.PENDING);
+
             int rowsAffected = pstmt.executeUpdate();
             pstmt.close();
             
+            System.out.println("Transaction saved, rows affected: " + rowsAffected);
             return rowsAffected > 0;
-            
+
         } catch (SQLException e) {
+            System.out.println("Error saving transaction: " + e.getMessage());
             e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Withdraw::new);
     }
-}
+} 
