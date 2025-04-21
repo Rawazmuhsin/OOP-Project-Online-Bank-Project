@@ -380,7 +380,6 @@ public class ApproveTransaction extends JFrame {
     }
 
     // Approve a specific transaction
-  // Fixed approve transaction method
 public void approveTransaction(int transactionId) {
     Connection conn = null;
     try {
