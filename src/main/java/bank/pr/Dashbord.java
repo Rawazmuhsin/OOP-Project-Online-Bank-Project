@@ -216,9 +216,9 @@ public class Dashbord extends JFrame {
                 loadAccountInfo();
                 break;
             case "Balance":
-                // Go to Balance page
+                // Go to Balance page - MODIFIED to pass user information
                 SwingUtilities.invokeLater(() -> {
-                    BalancePage balancePage = new BalancePage();
+                    BalancePage balancePage = new BalancePage(userName, userId);
                     balancePage.setVisible(true);
                     this.dispose(); // Close the current Dashboard window
                 });
