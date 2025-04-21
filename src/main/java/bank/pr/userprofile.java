@@ -7,11 +7,18 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -21,8 +28,19 @@ import javax.swing.SwingUtilities;
 
 public class UserProfile extends JFrame {
     
-    private String userName = "Alex Johnson"; // Default username
-    private int userId = 12345; // Default user ID
+    private String userName = ""; // Will be set via setUserInfo
+    private int userId = 0; // Will be set via setUserInfo
+    
+    // UI components that need to be updated with real data
+    private JTextField nameField;
+    private JTextField emailField;
+    private JTextField phoneField;
+    private JTextArea addressField;
+    
+    // Edit mode tracking
+    private boolean editMode = false;
+    private RoundedButton editButton;
+    private RoundedButton saveButton;
 
     public UserProfile() {
         setTitle(" Kurdish - O - Banking (KOB) - Profile");
@@ -67,10 +85,8 @@ public class UserProfile extends JFrame {
         profileButton.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         profileButton.setBounds(20, 100, 210, 40);
         profileButton.setHorizontalAlignment(SwingConstants.LEFT);
-        sidebarPanel.add(profileButton);
-
-        // Other sidebar buttons
-        String[] menuItems = {"Dashboard", "Accounts", "Transactions", "Transfer", "Settings"};
+        sidebarPanel.add(profileButton);// Other sidebar buttons
+        String[] menuItems = {"Dashboard", "Balance", "Transactions", "Transfer", "Withdraw", "Deposit"};
         int yPos = 180;
         for (String item : menuItems) {
             JLabel menuLabel = new JLabel(item);
@@ -145,13 +161,8 @@ public class UserProfile extends JFrame {
         contentPanel.add(photoLabel);
 
         // Profile Fields
-        String[] fieldLabels = {"Name", "Email", "Phone", "Address"};
-        String[] fieldValues = {
-            "Alex Johnson", 
-            "alex.johnson@example.com", 
-            "(555) 123-4567", 
-            "123 Main Street\nNew York, NY 10001"
-        };
+        String[] fieldLabels = {"Username", "Email", "Phone", "Account Info"};
+        String[] fieldValues = {"", "", "", ""}; // Empty values initially
         int[] yPositions = {250, 320, 390, 460};
         boolean[] isMultiline = {false, false, false, true};
 
@@ -161,9 +172,7 @@ public class UserProfile extends JFrame {
             fieldLabel.setFont(new Font("Arial", Font.PLAIN, 14));
             fieldLabel.setForeground(new Color(52, 58, 64)); // #343a40
             fieldLabel.setBounds(30, yPositions[i], 100, 20);
-            contentPanel.add(fieldLabel);
-
-            // Field Value
+            contentPanel.add(fieldLabel);// Field Value
             if (isMultiline[i]) {
                 JTextArea fieldValue = new JTextArea(fieldValues[i]);
                 fieldValue.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -173,6 +182,11 @@ public class UserProfile extends JFrame {
                 fieldValue.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239), 1));
                 fieldValue.setEditable(false);
                 contentPanel.add(fieldValue);
+                
+                // Save reference to address field
+                if (i == 3) {
+                    addressField = fieldValue;
+                }
             } else {
                 JTextField fieldValue = new JTextField(fieldValues[i]);
                 fieldValue.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -182,27 +196,59 @@ public class UserProfile extends JFrame {
                 fieldValue.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239), 1));
                 fieldValue.setEditable(false);
                 contentPanel.add(fieldValue);
+                
+                // Save references to other fields
+                if (i == 0) {
+                    nameField = fieldValue;
+                } else if (i == 1) {
+                    emailField = fieldValue;
+                } else if (i == 2) {
+                    phoneField = fieldValue;
+                }
             }
         }
 
         // Action Buttons
-        RoundedButton editButton = new RoundedButton("Edit Profile", 5);
+        editButton = new RoundedButton("Edit Profile", 5);
         editButton.setBackground(new Color(13, 110, 253)); // #0d6efd
         editButton.setForeground(Color.WHITE);
         editButton.setFont(new Font("Arial", Font.PLAIN, 14));
         editButton.setBounds(30, 600, 160, 30);
-        editButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Edit Profile clicked!"));
+        editButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                toggleEditMode();
+            }
+        });
         contentPanel.add(editButton);
+        
+        // Save button (initially hidden)
+        saveButton = new RoundedButton("Save Changes", 5);
+        saveButton.setBackground(new Color(40, 167, 69)); // Green
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        saveButton.setBounds(30, 600, 160, 30);
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                saveChanges();
+            }
+        });
+        saveButton.setVisible(false);
+        contentPanel.add(saveButton);
 
         RoundedButton changePasswordButton = new RoundedButton("Change Password", 5);
         changePasswordButton.setBackground(new Color(235, 237, 239)); // #ebedef
         changePasswordButton.setForeground(new Color(13, 110, 253)); // #0d6efd
         changePasswordButton.setFont(new Font("Arial", Font.PLAIN, 14));
         changePasswordButton.setBounds(220, 600, 160, 30);
-        changePasswordButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Change Password clicked!"));
-        contentPanel.add(changePasswordButton);
-
-        RoundedButton deleteButton = new RoundedButton("Delete Account", 5);
+        changePasswordButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openChangePasswordScreen();
+            }
+        });
+        contentPanel.add(changePasswordButton);RoundedButton deleteButton = new RoundedButton("Delete Account", 5);
         deleteButton.setBackground(new Color(255, 204, 204)); // #ffcccc
         deleteButton.setForeground(new Color(220, 53, 69)); // #dc3545
         deleteButton.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -221,10 +267,183 @@ public class UserProfile extends JFrame {
         return mainPanel;
     }
     
-    // Method to set user info
-    public void setUserInfo(String userName, int userId) {
-        this.userName = userName;
-        this.userId = userId;
+    // Method to open the change password screen
+    private void openChangePasswordScreen() {
+        SwingUtilities.invokeLater(() -> {
+            ChangePassword changePasswordScreen = new ChangePassword(userName, userId);
+            changePasswordScreen.setVisible(true);
+            this.dispose(); // Close the profile screen
+        });
+    }
+    
+    // Toggle edit mode
+    private void toggleEditMode() {
+        editMode = !editMode;
+        
+        // Toggle field editability
+        nameField.setEditable(editMode);
+        emailField.setEditable(editMode);
+        phoneField.setEditable(editMode);
+        
+        // Change background color to indicate editable fields
+        if (editMode) {
+            nameField.setBackground(new Color(255, 255, 220)); // Light yellow
+            emailField.setBackground(new Color(255, 255, 220));
+            phoneField.setBackground(new Color(255, 255, 220));
+            
+            // Show save button, hide edit button
+            saveButton.setVisible(true);
+            editButton.setVisible(false);
+        } else {
+            nameField.setBackground(Color.WHITE);
+            emailField.setBackground(Color.WHITE);
+            phoneField.setBackground(Color.WHITE);
+            
+            // Show edit button, hide save button
+            editButton.setVisible(true);
+            saveButton.setVisible(false);
+        }
+    }
+    
+    // Save changes to database
+    private void saveChanges() {
+        String newUsername = nameField.getText().trim();
+        String newEmail = emailField.getText().trim();
+        String newPhone = phoneField.getText().trim();
+        
+        // Validate input
+        if (newUsername.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username cannot be empty", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Check if username contains spaces
+        if (newUsername.contains(" ")) {
+            JOptionPane.showMessageDialog(this, "Username cannot contain spaces", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Validate email format (simple check)
+        if (!newEmail.isEmpty() && !newEmail.contains("@")) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid email address", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Update database
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // First, check if username already exists (if changed)
+            if (!newUsername.equals(userName)) {
+                String checkQuery = "SELECT COUNT(*) FROM accounts WHERE username = ? AND account_id != ?";
+                PreparedStatement checkStmt = conn.prepareStatement(checkQuery);
+                checkStmt.setString(1, newUsername);
+                checkStmt.setInt(2, userId);
+                ResultSet rs = checkStmt.executeQuery();
+                
+                if (rs.next() && rs.getInt(1) > 0) {
+                    JOptionPane.showMessageDialog(this, 
+                            "Username '" + newUsername + "' is already taken. Please choose another.", 
+                            "Username Conflict",JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    }
+                    
+                    // Perform update
+                    String updateQuery = "UPDATE accounts SET username = ?, email = ?, phone = ? WHERE account_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setString(1, newUsername);
+                    updateStmt.setString(2, newEmail);
+                    updateStmt.setString(3, newPhone);
+                    updateStmt.setInt(4, userId);
+                    
+                    int rowsAffected = updateStmt.executeUpdate();
+                    
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(this, 
+                                "Profile updated successfully!", 
+                                "Success", 
+                                JOptionPane.INFORMATION_MESSAGE);
+                        
+                        // Update current username variable
+                        userName = newUsername;
+                        
+                        // Update window title with username
+                        setTitle(" Kurdish - O - Banking (KOB) - Profile: " + userName);
+                        
+                        // Exit edit mode
+                        toggleEditMode();
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                                "Failed to update profile. Please try again.", 
+                                "Error", 
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                    
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, 
+                            "Database error: " + e.getMessage(), 
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                }
+            }
+            
+            // Method to set user info and load data from database
+            public void setUserInfo(String userName, int userId) {
+                this.userName = userName;
+                this.userId = userId;
+                
+                // Load user data from database
+                loadUserData();
+            }
+            
+            // Method to load user data from database
+            private void loadUserData() {
+                try (Connection conn = DatabaseConnection.getConnection()) {
+                    String query = "SELECT username, email, phone, account_number FROM accounts WHERE account_id = ? OR username = ?";
+                    PreparedStatement stmt = conn.prepareStatement(query);
+                    stmt.setInt(1, userId);
+                    stmt.setString(2, userName);
+                    
+                    ResultSet rs = stmt.executeQuery();
+                    
+                    if (rs.next()) {
+                        // Get user data from result set
+                        String username = rs.getString("username");
+                        String email = rs.getString("email");
+                        String phone = rs.getString("phone");
+                        String accountNumber = rs.getString("account_number");
+                        
+                        // Update username if needed
+                        if (!username.equals(userName)) {
+                            userName = username;
+                        }
+                        
+                        // Set data to UI fields
+                        nameField.setText(username);
+                        emailField.setText(email != null ? email : "");
+                        phoneField.setText(phone != null ? phone : "");
+                        
+                        // Set address field - using account number as an example of additional information
+                        String address = "Account #: " + (accountNumber != null ? accountNumber : "N/A") + "\n";
+                        address += "User ID: " + userId;
+                        addressField.setText(address);
+                        
+                        // Update window title with username
+                        setTitle(" Kurdish - O - Banking (KOB) - Profile: " + username);
+                    } else {
+                        // User not found
+                        JOptionPane.showMessageDialog(this, 
+                                "User information not found in database.", 
+                                "Error", 
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                    
+                } catch (SQLException e) {
+                    JOptionPane.showMessageDialog(this, 
+                            "Database error: " + e.getMessage(),"Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
     
     // Method to handle navigation between pages
@@ -241,13 +460,10 @@ public class UserProfile extends JFrame {
                     dashboard.setVisible(true);
                 });
                 break;
-            case "Accounts":
-                JOptionPane.showMessageDialog(null, "Accounts functionality coming soon!");
-                // Return to dashboard after showing message
+            case "Balance":
                 SwingUtilities.invokeLater(() -> {
-                    Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
-                    dashboard.setVisible(true);
+                    BalancePage balancePage = new BalancePage(userName, userId);
+                    balancePage.setVisible(true);
                 });
                 break;
             case "Transactions":
@@ -259,16 +475,22 @@ public class UserProfile extends JFrame {
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, userId);
                     transferScreen.setVisible(true);
                 });
                 break;
-            case "Settings":
-                JOptionPane.showMessageDialog(null, "Settings functionality coming soon!");
-                // Stay on profile page
+            case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
-                    UserProfile profile = new UserProfile();
-                    profile.setUserInfo(userName, userId);
-                    profile.setVisible(true);
+                    Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setUserInfo(userName, userId);
+                    withdrawScreen.setVisible(true);
+                });
+                break;
+            case "Deposit":
+                SwingUtilities.invokeLater(() -> {
+                    Deposite depositScreen = new Deposite();
+                    depositScreen.setUserInfo(userName, userId);
+                    depositScreen.setVisible(true);
                 });
                 break;
             default:

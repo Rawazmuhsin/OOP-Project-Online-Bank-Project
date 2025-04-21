@@ -92,9 +92,7 @@ public class Dashbord extends JFrame {
 
         JPanel cardsPanel = new JPanel();
         cardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
-        cardsPanel.setBackground(new Color(245, 247, 251));
-
-        // Create account cards with updated layout to include account ID
+        cardsPanel.setBackground(new Color(245, 247, 251));// Create account cards with updated layout to include account ID
         JPanel checkingCard = createAccountCard("Checking - ****1234");
         checkingBalanceLabel = (JLabel) ((JPanel)checkingCard.getComponent(1)).getComponent(1);
         checkingAccountIdLabel = (JLabel) ((JPanel)checkingCard.getComponent(1)).getComponent(3);
@@ -151,9 +149,7 @@ public class Dashbord extends JFrame {
         infoPanel.add(balanceTextLabel);
         infoPanel.add(balanceLabel);
         infoPanel.add(accountIdTextLabel);
-        infoPanel.add(accountIdLabel);
-
-        card.add(accountLabel, BorderLayout.NORTH);
+        infoPanel.add(accountIdLabel);card.add(accountLabel, BorderLayout.NORTH);
         card.add(infoPanel, BorderLayout.CENTER);
         
         return card;
@@ -216,9 +212,9 @@ public class Dashbord extends JFrame {
                 loadAccountInfo();
                 break;
             case "Balance":
-                // Go to Balance page
+                // Go to Balance page - MODIFIED to pass user information
                 SwingUtilities.invokeLater(() -> {
-                    BalancePage balancePage = new BalancePage();
+                    BalancePage balancePage = new BalancePage(userName, userId);
                     balancePage.setVisible(true);
                     this.dispose(); // Close the current Dashboard window
                 });
@@ -249,19 +245,18 @@ public class Dashbord extends JFrame {
                 });
                 break;
             case "Cards":
-                // Go to cards page
-                JOptionPane.showMessageDialog(this, "Cards page coming soon!");
+                // Go to cards pageJOptionPane.showMessageDialog(this, "Cards page coming soon!");
                 break;
-            default:
-                break;
+                default:
+                    break;
+            }
+        }
+    
+        public static void main(String[] args) {
+            SwingUtilities.invokeLater(() -> {
+                Dashbord dashboard = new Dashbord();
+                dashboard.setUserInfo("John Doe", 12345);
+                dashboard.setVisible(true);
+            });
         }
     }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Dashbord dashboard = new Dashbord();
-            dashboard.setUserInfo("John Doe", 12345);
-            dashboard.setVisible(true);
-        });
-    }
-}
