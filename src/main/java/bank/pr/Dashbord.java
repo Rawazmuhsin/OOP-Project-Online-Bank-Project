@@ -93,7 +93,7 @@ public class Dashbord extends JFrame {
         JPanel cardsPanel = new JPanel();
         cardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
         cardsPanel.setBackground(new Color(245, 247, 251));
-
+        
         // Create account cards with updated layout to include account ID
         JPanel checkingCard = createAccountCard("Checking - ****1234");
         checkingBalanceLabel = (JLabel) ((JPanel)checkingCard.getComponent(1)).getComponent(1);
@@ -152,7 +152,7 @@ public class Dashbord extends JFrame {
         infoPanel.add(balanceLabel);
         infoPanel.add(accountIdTextLabel);
         infoPanel.add(accountIdLabel);
-
+        
         card.add(accountLabel, BorderLayout.NORTH);
         card.add(infoPanel, BorderLayout.CENTER);
         
@@ -241,9 +241,10 @@ public class Dashbord extends JFrame {
                 });
                 break;
             case "Transfers":
-                // Go to transfers page
+                // FIXED: Go to transfers page with correct account ID
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, userId); // Pass the user info properly
                     transferScreen.setVisible(true);
                     this.dispose();
                 });
@@ -256,7 +257,7 @@ public class Dashbord extends JFrame {
                 break;
         }
     }
-
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Dashbord dashboard = new Dashbord();

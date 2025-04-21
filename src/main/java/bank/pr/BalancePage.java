@@ -111,7 +111,7 @@ public class BalancePage extends JFrame {
         
         accountSelectPanel.add(accountComboBox, BorderLayout.CENTER);
         content.add(accountSelectPanel);
-
+        
         // Current Balance box - now with real data
         JPanel currentBalancePanel = createBalanceBox(
                 "CURRENT BALANCE", "$0.00", "Includes pending transactions",
@@ -197,7 +197,7 @@ public class BalancePage extends JFrame {
         
         return sidebar;
     }
-
+    
     private JPanel createBalanceBox(String title, String amount, String subtext, Color bg, Color textColor) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -288,7 +288,7 @@ public class BalancePage extends JFrame {
             userName = selectedAccount.getUsername();
         }
     }
-
+    
     public static void main(String[] args) {
         SwingUtilities.invokeLater(BalancePage::new);
     }

@@ -34,8 +34,12 @@ public class Transfer extends JFrame {
     private JTextField amountField;
     private JTextField toAccountField;
     private JTextField fromAccountField;
-    private int accountId = 10; // Default source account ID (Rawaz's account)
-    private String userName = "Rawaz.muhsin"; // Default user name
+    private JButton verifyButton;
+    private JLabel verificationStatusLabel;
+    private boolean isVerified = false;
+    private String verifiedRecipientName = "";
+    private int accountId = 0; // Will be set by setUserInfo
+    private String userName = ""; // Will be set by setUserInfo
 
     public Transfer() {
         setTitle("Transfer Funds -  Kurdish - O - Banking (KOB)");
@@ -106,7 +110,7 @@ public class Transfer extends JFrame {
         ButtonGroup group = new ButtonGroup();
         group.add(internal);
         group.add(external);
-        internal.setSelected(true);
+        external.setSelected(true); // Default to external transfer
 
         transferTypePanel.add(wrapRadioPanel("Between My Accounts", "Instant transfer", internal));
         transferTypePanel.add(wrapRadioPanel("To Another Person", "1–2 business days", external));
@@ -117,7 +121,7 @@ public class Transfer extends JFrame {
         // From Account
         JLabel fromLabel = new JLabel("From Account");
         fromLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        fromAccountField = new JTextField("Checking - Account ID: " + accountId);
+        fromAccountField = new JTextField("");  // Will be set in setUserInfo
         fromAccountField.setPreferredSize(new Dimension(300, 30));
         fromAccountField.setEditable(false);
         fromAccountField.setBackground(Color.WHITE);
@@ -127,16 +131,42 @@ public class Transfer extends JFrame {
         content.add(fromAccountField);
         content.add(Box.createVerticalStrut(20));
 
-        // To Account
+        // To Account with Verify Button
         JLabel toLabel = new JLabel("To Account (Enter recipient's account ID)");
         toLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        
+        // Panel for account input and verify button
+        JPanel accountInputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        accountInputPanel.setOpaque(false);
+        
         toAccountField = new JTextField();
-        toAccountField.setPreferredSize(new Dimension(300, 30));
-
+        toAccountField.setPreferredSize(new Dimension(250, 30));
+        
+        verifyButton = new JButton("Verify");
+        verifyButton.setBackground(new Color(60, 130, 180));
+        verifyButton.setForeground(Color.WHITE);
+        verifyButton.setFocusPainted(false);
+        verifyButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                verifyRecipientAccount();
+            }
+        });
+        
+        accountInputPanel.add(toAccountField);
+        accountInputPanel.add(Box.createHorizontalStrut(10));
+        accountInputPanel.add(verifyButton);
+        
+        // Verification status label
+        verificationStatusLabel = new JLabel("");
+        verificationStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        
         content.add(toLabel);
         content.add(Box.createVerticalStrut(5));
-        content.add(toAccountField);
-        content.add(Box.createVerticalStrut(20));
+        content.add(accountInputPanel);
+        content.add(Box.createVerticalStrut(5));
+        content.add(verificationStatusLabel);
+        content.add(Box.createVerticalStrut(15));
 
         // Amount Section
         JLabel amountLabel = new JLabel("Amount");
@@ -220,9 +250,128 @@ public class Transfer extends JFrame {
         this.userName = userName;
         this.accountId = accountId;
         
-        // Update from account field with the account ID
+        // Immediately update the from account field with the account ID
         if (fromAccountField != null) {
-            fromAccountField.setText("Checking - Account ID: " + accountId);
+            fromAccountField.setText("Account ID: " + accountId);
+            
+            // Load actual account details in the background
+            SwingUtilities.invokeLater(() -> {
+                updateAccountInfo();
+            });
+        }
+    }
+    
+    // Method to update account information
+    private void updateAccountInfo() {
+        if (accountId <= 0) {
+            fromAccountField.setText("Invalid account information");
+            return;
+        }
+        
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            String query = "SELECT username, account_type, balance FROM accounts WHERE account_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, accountId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                // Get account details
+                String username = rs.getString("username");
+                String accountType = rs.getString("account_type");
+                double balance = rs.getDouble("balance");
+                
+                // Update UI with account information
+                String accountInfo = accountType + " - Account ID: " + accountId + " - Balance: $" + balance;
+                fromAccountField.setText(accountInfo);
+                
+                // Update window title with username
+                setTitle("Transfer Funds - " + username + " - Kurdish - O - Banking (KOB)");
+            } else {
+                // Just show the account ID if details can't be loaded
+                fromAccountField.setText("Account ID: " + accountId);
+            }
+        } catch (SQLException e) {
+            // On error, just show the account ID
+            fromAccountField.setText("Account ID: " + accountId);
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    // Method to verify recipient account
+    private void verifyRecipientAccount() {
+        String toAccount = toAccountField.getText().trim();
+        
+        if (toAccount.isEmpty()) {
+            verificationStatusLabel.setText("Please enter a destination account ID");
+            verificationStatusLabel.setForeground(Color.RED);
+            isVerified = false;
+            return;
+        }
+        
+        // Validate that the account ID is a number
+        int destinationAccountId;
+        try {
+            destinationAccountId = Integer.parseInt(toAccount);
+        } catch (NumberFormatException e) {
+            verificationStatusLabel.setText("Invalid account ID (should be a number)");
+            verificationStatusLabel.setForeground(Color.RED);
+            isVerified = false;
+            return;
+        }
+        
+        // Make sure we don't transfer to the same account
+        if (accountId == destinationAccountId) {
+            verificationStatusLabel.setText("Cannot transfer to your own account");
+            verificationStatusLabel.setForeground(Color.RED);
+            isVerified = false;
+            return;
+        }
+        
+        // Check if the destination account exists
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            
+            String checkAccountQuery = "SELECT username FROM accounts WHERE account_id = ?";
+            PreparedStatement checkStmt = conn.prepareStatement(checkAccountQuery);
+            checkStmt.setInt(1, destinationAccountId);
+            ResultSet rs = checkStmt.executeQuery();
+            
+            if (rs.next()) {
+                String recipientName = rs.getString("username");
+                verifiedRecipientName = recipientName;
+                verificationStatusLabel.setText("✓ Verified: " + recipientName);
+                verificationStatusLabel.setForeground(new Color(0, 150, 0));
+                isVerified = true;
+            } else {
+                verificationStatusLabel.setText("❌ Account not found");
+                verificationStatusLabel.setForeground(Color.RED);
+                isVerified = false;
+            }
+            
+        } catch (SQLException e) {
+            verificationStatusLabel.setText("Error verifying account: " + e.getMessage());
+            verificationStatusLabel.setForeground(Color.RED);
+            isVerified = false;
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -282,6 +431,7 @@ public class Transfer extends JFrame {
 
     // Method to handle transfer submission
     private void handleTransferSubmit() {
+        // Don't check for accountId <= 0, just use the ID that was passed in
         String amount = amountField.getText();
         String toAccount = toAccountField.getText();
         
@@ -292,6 +442,14 @@ public class Transfer extends JFrame {
         
         if (toAccount.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter a destination account ID", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (!isVerified) {
+            JOptionPane.showMessageDialog(this, 
+                    "Please verify the recipient account first by clicking the 'Verify' button", 
+                    "Verification Required", 
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
         
@@ -315,26 +473,36 @@ public class Transfer extends JFrame {
                 return;
             }
             
-            boolean success = createPendingTransfer(transferAmount, destinationAccountId);
+            // Confirm transfer
+            int confirmResult = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to transfer $" + transferAmount + " to " + verifiedRecipientName + 
+                    " (Account ID: " + destinationAccountId + ")?",
+                    "Confirm Transfer",
+                    JOptionPane.YES_NO_OPTION);
             
-            if (success) {
-                JOptionPane.showMessageDialog(this, 
-                        "Transfer of $" + transferAmount + " to account ID " + destinationAccountId + " has been submitted and is pending approval.",
-                        "Transfer Pending", 
-                        JOptionPane.INFORMATION_MESSAGE);
+            if (confirmResult == JOptionPane.YES_OPTION) {
+                boolean success = processDirectTransfer(transferAmount, destinationAccountId);
                 
-                // Navigate back to dashboard
-                SwingUtilities.invokeLater(() -> {
-                    Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, accountId);
-                    dashboard.setVisible(true);
-                    this.dispose();
-                });
-            } else {
-                JOptionPane.showMessageDialog(this, 
-                        "Failed to process transfer. Please verify the destination account ID and try again.", 
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, 
+                            "Transfer of $" + transferAmount + " to " + verifiedRecipientName + 
+                            " (Account ID: " + destinationAccountId + ") completed successfully.",
+                            "Transfer Complete", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Navigate back to dashboard
+                    SwingUtilities.invokeLater(() -> {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, accountId);
+                        dashboard.setVisible(true);
+                        this.dispose();
+                    });
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                            "Failed to process transfer. Please try again later.", 
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
             
         } catch (NumberFormatException e) {
@@ -342,47 +510,21 @@ public class Transfer extends JFrame {
         }
     }
     
-    // Method to create a pending transfer in the transactions table
-    private boolean createPendingTransfer(double amount, int destinationAccountId) {
+    // Method to process a direct transfer (not pending)
+    private boolean processDirectTransfer(double amount, int destinationAccountId) {
         Connection conn = null;
         
         try {
-            System.out.println("==== Starting transfer operation ====");
+            System.out.println("==== Starting direct transfer operation ====");
             System.out.println("Source account ID: " + accountId);
             System.out.println("Destination account ID: " + destinationAccountId);
             System.out.println("Transfer amount: $" + amount);
             
-            // Make sure we don't transfer to the same account
-            if (accountId == destinationAccountId) {
-                System.out.println("ERROR: Cannot transfer to the same account");
-                JOptionPane.showMessageDialog(this, "Cannot transfer to the same account", "Error", JOptionPane.ERROR_MESSAGE);
-                return false;
-            }
-            
             conn = DatabaseConnection.getConnection();
-            System.out.println("Connected to database");
+            // Begin transaction
+            conn.setAutoCommit(false);
             
-            // Verify that both accounts exist
-            String checkAccountsQuery = "SELECT account_id FROM accounts WHERE account_id = ?";
-            PreparedStatement checkSourceStmt = conn.prepareStatement(checkAccountsQuery);
-            checkSourceStmt.setInt(1, accountId);
-            ResultSet sourceRs = checkSourceStmt.executeQuery();
-            
-            if (!sourceRs.next()) {
-                System.out.println("ERROR: Source account not found");
-                return false;
-            }
-            
-            PreparedStatement checkDestStmt = conn.prepareStatement(checkAccountsQuery);
-            checkDestStmt.setInt(1, destinationAccountId);
-            ResultSet destRs = checkDestStmt.executeQuery();
-            
-            if (!destRs.next()) {
-                System.out.println("ERROR: Destination account not found");
-                return false;
-            }
-            
-            // Check if current account has sufficient funds
+            // Check source account balance
             String balanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
             PreparedStatement balanceStmt = conn.prepareStatement(balanceQuery);
             balanceStmt.setInt(1, accountId);
@@ -395,52 +537,95 @@ public class Transfer extends JFrame {
                 if (currentBalance < amount) {
                     System.out.println("ERROR: Insufficient funds");
                     JOptionPane.showMessageDialog(this, "Insufficient funds. Current balance: $" + currentBalance, "Error", JOptionPane.ERROR_MESSAGE);
+                    conn.rollback();
                     return false;
                 }
-            }
-            
-            // Create a pending transaction
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String currentDate = sdf.format(new Date());
-            
-            // Insert into transactions table
-            String transactionSql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
-                               "VALUES (?, ?, ?, ?, ?, ?)";
-                               
-            PreparedStatement transactionStmt = conn.prepareStatement(transactionSql);
-            transactionStmt.setInt(1, accountId);
-            transactionStmt.setString(2, "TRANSFER");
-            transactionStmt.setDouble(3, amount);
-            transactionStmt.setString(4, currentDate);
-            transactionStmt.setString(5, "Transfer to account ID " + destinationAccountId);
-            transactionStmt.setString(6, TransactionStatus.PENDING);
-            
-            int rowsAffected = transactionStmt.executeUpdate();
-            System.out.println("Transaction inserted, rows affected: " + rowsAffected);
-            
-            // Store destination account ID in the description
-            // This way the ApproveTransaction class can extract it when needed
-            
-            if (rowsAffected > 0) {
-                return true;
             } else {
-                System.out.println("ERROR: Failed to insert transaction");
+                System.out.println("ERROR: Source account not found");
+                conn.rollback();
                 return false;
             }
             
+            // Deduct amount from source account
+            String deductQuery = "UPDATE accounts SET balance = balance - ? WHERE account_id = ?";
+            PreparedStatement deductStmt = conn.prepareStatement(deductQuery);
+            deductStmt.setDouble(1, amount);
+            deductStmt.setInt(2, accountId);
+            int deductResult = deductStmt.executeUpdate();
+            
+            if (deductResult != 1) {
+                System.out.println("ERROR: Failed to deduct from source account");
+                conn.rollback();
+                return false;
+            }
+            
+            // Add amount to destination account
+            String addQuery = "UPDATE accounts SET balance = balance + ? WHERE account_id = ?";
+            PreparedStatement addStmt = conn.prepareStatement(addQuery);
+            addStmt.setDouble(1, amount);
+            addStmt.setInt(2, destinationAccountId);
+            int addResult = addStmt.executeUpdate();
+            
+            if (addResult != 1) {
+                System.out.println("ERROR: Failed to add to destination account");
+                conn.rollback();
+                return false;
+            }
+            
+            // Record transaction for source account (negative amount)
+            recordTransaction(conn, accountId, "Transfer", -amount, 
+                    "Transfer to account ID " + destinationAccountId, "APPROVED");
+            
+            // Record transaction for destination account (positive amount)
+            recordTransaction(conn, destinationAccountId, "Transfer", amount, 
+                    "Transfer from account ID " + accountId, "APPROVED");
+            
+            // Commit transaction
+            conn.commit();
+            System.out.println("Transfer completed successfully");
+            return true;
+            
         } catch (SQLException e) {
             System.out.println("ERROR: Database exception: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             return false;
         } finally {
             if (conn != null) {
                 try {
+                    conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
             }
         }
+    }
+    
+    // Helper method to record a transaction
+    private void recordTransaction(Connection conn, int accountId, String type, double amount, 
+                                   String description, String status) throws SQLException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String currentDate = sdf.format(new Date());
+        
+        String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, accountId);
+        stmt.setString(2, type);
+        stmt.setDouble(3, amount);
+        stmt.setString(4, currentDate);
+        stmt.setString(5, description);
+        stmt.setString(6, status);
+        
+        stmt.executeUpdate();
     }
 
     public static void main(String[] args) {

@@ -85,7 +85,7 @@ public class UserProfile extends JFrame {
         profileButton.setBounds(20, 100, 210, 40);
         profileButton.setHorizontalAlignment(SwingConstants.LEFT);
         sidebarPanel.add(profileButton);
-
+        
         // Other sidebar buttons
         String[] menuItems = {"Dashboard", "Balance", "Transactions", "Transfer", "Withdraw", "Deposit"};
         int yPos = 180;
@@ -174,7 +174,7 @@ public class UserProfile extends JFrame {
             fieldLabel.setForeground(new Color(52, 58, 64)); // #343a40
             fieldLabel.setBounds(30, yPositions[i], 100, 20);
             contentPanel.add(fieldLabel);
-
+            
             // Field Value
             if (isMultiline[i]) {
                 JTextArea fieldValue = new JTextArea(fieldValues[i]);
@@ -252,7 +252,7 @@ public class UserProfile extends JFrame {
             }
         });
         contentPanel.add(changePasswordButton);
-
+        
         RoundedButton deleteButton = new RoundedButton("Delete Account", 5);
         deleteButton.setBackground(new Color(255, 204, 204)); // #ffcccc
         deleteButton.setForeground(new Color(220, 53, 69)); // #dc3545
@@ -264,12 +264,49 @@ public class UserProfile extends JFrame {
                 "Confirm Deletion", 
                 JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(this, "Account deletion requested!");
+                deleteAccount();
             }
         });
         contentPanel.add(deleteButton);
 
         return mainPanel;
+    }
+    
+    // Method to delete the account from database
+    private void deleteAccount() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Delete the account from the database
+            String deleteQuery = "DELETE FROM accounts WHERE account_id = ?";
+            PreparedStatement deleteStmt = conn.prepareStatement(deleteQuery);
+            deleteStmt.setInt(1, userId);
+            
+            int rowsAffected = deleteStmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                JOptionPane.showMessageDialog(this, 
+                        "Your account has been successfully deleted.", 
+                        "Account Deleted", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+                // Return to login screen
+                SwingUtilities.invokeLater(() -> {
+                    LoginUI loginScreen = new LoginUI();
+                    loginScreen.setVisible(true);
+                    this.dispose();
+                });
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to delete account. Please try again.", 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, 
+                    "Database error: " + e.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
     
     // Method to open the change password screen
@@ -446,7 +483,7 @@ public class UserProfile extends JFrame {
             
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, 
-                    "Database error: " + e.getMessage(), 
+                    "Database error: " + e.getMessage(),
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
