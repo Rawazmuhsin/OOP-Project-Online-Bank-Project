@@ -30,12 +30,14 @@ import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellRenderer;
 
 public class CustomerAccounts extends JFrame {
     
     private DefaultTableModel tableModel;
     private JTable accountsTable;
     private int adminId = 0;
+    private List<Integer> accountIds = new ArrayList<>(); // Store account IDs for removal
 
     public CustomerAccounts() {
         initialize();
@@ -167,13 +169,21 @@ public class CustomerAccounts extends JFrame {
         contentPanel.add(filterPanel);
 
         // Create table with data from database
-        String[] columnNames = {"CUSTOMER NAME", "ACCOUNT NUMBER", "ACCOUNT TYPE", "BALANCE", "STATUS"};
+        // Added "ACTION" column for remove button
+        String[] columnNames = {"CUSTOMER NAME", "ACCOUNT NUMBER", "ACCOUNT TYPE", "BALANCE", "STATUS", "ACTION"};
         
         // Create table model for dynamic updates
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                // Make only the ACTION column editable
+                return column == 5;
+            }
+            
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                // Return JButton class for the ACTION column
+                return columnIndex == 5 ? JButton.class : Object.class;
             }
         };
 
@@ -182,6 +192,12 @@ public class CustomerAccounts extends JFrame {
         accountsTable.setShowGrid(false);
         accountsTable.setIntercellSpacing(new Dimension(0, 0));
         accountsTable.setFont(new Font("Arial", Font.PLAIN, 14));
+        
+        // Set custom renderer for the button column
+        accountsTable.getColumnModel().getColumn(5).setCellRenderer(new ButtonRenderer("Remove"));
+        
+        // Set custom editor for the button column
+        accountsTable.getColumnModel().getColumn(5).setCellEditor(new ButtonEditor(new JButton("Remove"), this));
         
         // Load data from database
         loadAccountsData();
@@ -313,15 +329,18 @@ public class CustomerAccounts extends JFrame {
     private void loadAccountsData() {
         // Clear existing data
         tableModel.setRowCount(0);
+        accountIds.clear(); // Clear stored account IDs
         
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT username, account_id, account_type, balance, created_at, account_number FROM accounts";
+            String query = "SELECT account_id, username, account_type, balance, created_at, account_number FROM accounts";
             PreparedStatement stmt = conn.prepareStatement(query);
             ResultSet rs = stmt.executeQuery();
             
             while (rs.next()) {
-                String username = rs.getString("username");
                 int accountId = rs.getInt("account_id");
+                accountIds.add(accountId); // Store account ID for removal
+                
+                String username = rs.getString("username");
                 String accountNumber = rs.getString("account_number");
                 if (accountNumber == null || accountNumber.isEmpty()) {
                     accountNumber = "****" + String.valueOf(accountId);
@@ -340,25 +359,89 @@ public class CustomerAccounts extends JFrame {
                 // Determine account status - for demo purposes, any account with balance <= 0 is "Inactive"
                 String status = balance > 0 ? "Active" : "Inactive";
                 
-                // Add row to table
+                // Add new row with a Remove button
                 tableModel.addRow(new Object[]{
                     username,
                     accountNumber,
                     accountType,
                     balance,
-                    status
+                    status,
+                    "Remove" // This will be replaced by the button renderer
                 });
             }
             
             // If no accounts were found, display a message
             if (tableModel.getRowCount() == 0) {
-                tableModel.addRow(new Object[]{"No accounts found", "", "", "", ""});
+                tableModel.addRow(new Object[]{"No accounts found", "", "", "", "", ""});
             }
             
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, 
                 "Error loading account data: " + e.getMessage(),
                 "Database Error", 
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Remove account from database by index
+     * @param rowIndex The row index in the table
+     */
+    public void removeAccount(int rowIndex) {
+        if (rowIndex < 0 || rowIndex >= accountIds.size()) {
+            JOptionPane.showMessageDialog(this,
+                "Invalid account selection.",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        int accountId = accountIds.get(rowIndex);
+        String username = (String) tableModel.getValueAt(rowIndex, 0);
+        
+        // Confirm deletion
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Are you sure you want to remove " + username + "'s account?",
+            "Confirm Account Removal",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+            
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+        
+        // Delete from database
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "DELETE FROM accounts WHERE account_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, accountId);
+            
+            int result = stmt.executeUpdate();
+            
+            if (result > 0) {
+                // Remove from table model
+                tableModel.removeRow(rowIndex);
+                // Remove from accountIds list
+                accountIds.remove(rowIndex);
+                
+                JOptionPane.showMessageDialog(this,
+                    "Account removed successfully.",
+                    "Account Removed",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Reload data to ensure consistency
+                loadAccountsData();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Failed to remove account. Please try again.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this,
+                "Database error: " + e.getMessage(),
+                "Error",
                 JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
@@ -396,6 +479,86 @@ public class CustomerAccounts extends JFrame {
                 break;
             default:
                 SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+        }
+    }
+    
+    /**
+     * Custom renderer for the button column
+     */
+    class ButtonRenderer extends JButton implements TableCellRenderer {
+        public ButtonRenderer(String text) {
+            setOpaque(true);
+            setText(text);
+            setBackground(new Color(220, 53, 69)); // #dc3545 (red)
+            setForeground(Color.WHITE);
+            setFocusPainted(false);
+            setBorderPainted(false);
+        }
+        
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            return this;
+        }
+    }
+    
+    /**
+     * Custom editor for the button column to handle click events
+     */
+    class ButtonEditor extends javax.swing.DefaultCellEditor {
+        protected JButton button;
+        private String label;
+        private boolean isPushed;
+        private CustomerAccounts parent;
+        
+        public ButtonEditor(JButton button, CustomerAccounts parent) {
+            super(new javax.swing.JCheckBox());
+            this.button = button;
+            this.parent = parent;
+            button.setOpaque(true);
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    fireEditingStopped();
+                }
+            });
+        }
+        
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                boolean isSelected, int row, int column) {
+            if (value == null) {
+                label = "";
+            } else {
+                label = value.toString();
+            }
+            button.setText(label);
+            button.setBackground(new Color(220, 53, 69)); // #dc3545 (red)
+            button.setForeground(Color.WHITE);
+            isPushed = true;
+            return button;
+        }
+        
+        @Override
+        public Object getCellEditorValue() {
+            isPushed = false;
+            return label;
+        }
+        
+        @Override
+        public boolean stopCellEditing() {
+            isPushed = false;
+            return super.stopCellEditing();
+        }
+        
+        @Override
+        public void fireEditingStopped() {
+            super.fireEditingStopped();
+            // When button is clicked, call removeAccount method
+            int row = accountsTable.getSelectedRow();
+            if (row >= 0) {
+                parent.removeAccount(row);
+            }
         }
     }
 
