@@ -6,12 +6,22 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -22,8 +32,21 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 public class CustomerAccounts extends JFrame {
+    
+    private DefaultTableModel tableModel;
+    private JTable accountsTable;
+    private int adminId = 0;
 
     public CustomerAccounts() {
+        initialize();
+    }
+    
+    public CustomerAccounts(int adminId) {
+        this.adminId = adminId;
+        initialize();
+    }
+    
+    private void initialize() {
         setTitle("KOB Manager - Customer Accounts");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -88,7 +111,13 @@ public class CustomerAccounts extends JFrame {
                 }
             });
             
-           
+            // Add action listener for navigation
+            menuButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    navigateToScreen(item);
+                }
+            });
             
             sidebarPanel.add(menuButton);
             yPos += 40;
@@ -137,29 +166,28 @@ public class CustomerAccounts extends JFrame {
         }
         contentPanel.add(filterPanel);
 
-        // Table - Corrected implementation
+        // Create table with data from database
         String[] columnNames = {"CUSTOMER NAME", "ACCOUNT NUMBER", "ACCOUNT TYPE", "BALANCE", "STATUS"};
-        Object[][] data = {
-            {"John Doe", "****1234", "Premium Checking", "$5,000.00", "Active"},
-            {"Jane Smith", "****5678", "Savings Plus", "$7,200.00", "Active"},
-            {"Robert Johnson", "****9012", "Business Checking", "$12,450.00", "Flagged"}
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+        
+        // Create table model for dynamic updates
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
 
-        JTable table = new JTable(model);
-        table.setRowHeight(30);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        accountsTable = new JTable(tableModel);
+        accountsTable.setRowHeight(30);
+        accountsTable.setShowGrid(false);
+        accountsTable.setIntercellSpacing(new Dimension(0, 0));
+        accountsTable.setFont(new Font("Arial", Font.PLAIN, 14));
         
-        // Custom renderer for status column - Fixed implementation
-        table.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
+        // Load data from database
+        loadAccountsData();
+        
+        // Custom renderer for status column
+        accountsTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
@@ -180,16 +208,41 @@ public class CustomerAccounts extends JFrame {
                 return label;
             }
         });
+        
+        // Custom renderer for balance column to right-align and format currency
+        accountsTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            private final DecimalFormat formatter = new DecimalFormat("$#,##0.00");
+            
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
+                label.setHorizontalAlignment(SwingConstants.RIGHT);
+                
+                // Format balance as currency if it's not already formatted
+                if (value != null && !value.toString().startsWith("$")) {
+                    try {
+                        double amount = Double.parseDouble(value.toString());
+                        label.setText(formatter.format(amount));
+                    } catch (NumberFormatException e) {
+                        // Keep original text if parsing fails
+                    }
+                }
+                
+                return label;
+            }
+        });
 
         // Style table header
-        JTableHeader header = table.getTableHeader();
+        JTableHeader header = accountsTable.getTableHeader();
         header.setBackground(new Color(248, 250, 252)); // #f8fafc
         header.setForeground(new Color(52, 58, 64)); // #343a40
         header.setFont(new Font("Arial", Font.PLAIN, 14));
         header.setBorder(BorderFactory.createEmptyBorder());
         header.setReorderingAllowed(false);
 
-        JScrollPane scrollPane = new JScrollPane(table);
+        JScrollPane scrollPane = new JScrollPane(accountsTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         contentPanel.add(scrollPane);
 
@@ -206,14 +259,14 @@ public class CustomerAccounts extends JFrame {
         prevButton.setFocusPainted(false);
         prevButton.addActionListener(e -> {
             dispose();
-            
+            SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
         });
         paginationPanel.add(prevButton);
 
         for (int i = 1; i <= 5; i++) {
             JButton pageButton = new JButton(String.valueOf(i));
             pageButton.setFont(new Font("Arial", Font.PLAIN, 14));
-            if (i == 2) {
+            if (i == 1) { // First page is active by default
                 pageButton.setBackground(new Color(13, 110, 253)); // #0d6efd
                 pageButton.setForeground(Color.WHITE);
                 pageButton.setBorder(BorderFactory.createLineBorder(new Color(13, 110, 253)));
@@ -233,10 +286,117 @@ public class CustomerAccounts extends JFrame {
         nextButton.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239))); // #ebedef
         nextButton.setFocusPainted(false);
         paginationPanel.add(nextButton);
+        
+        JButton refreshButton = new JButton("Refresh Data");
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        refreshButton.setBackground(new Color(230, 247, 255));
+        refreshButton.setForeground(new Color(13, 110, 253));
+        refreshButton.setBorder(BorderFactory.createLineBorder(new Color(230, 247, 255)));
+        refreshButton.setFocusPainted(false);
+        refreshButton.addActionListener(e -> {
+            loadAccountsData();
+            JOptionPane.showMessageDialog(this, 
+                "Account data refreshed successfully.",
+                "Refresh Complete", 
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        paginationPanel.add(refreshButton);
 
         contentPanel.add(paginationPanel);
         mainPanel.add(contentPanel, BorderLayout.NORTH);
         return mainPanel;
+    }
+    
+    /**
+     * Loads account data from the database into the table
+     */
+    private void loadAccountsData() {
+        // Clear existing data
+        tableModel.setRowCount(0);
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT username, account_id, account_type, balance, created_at, account_number FROM accounts";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String username = rs.getString("username");
+                int accountId = rs.getInt("account_id");
+                String accountNumber = rs.getString("account_number");
+                if (accountNumber == null || accountNumber.isEmpty()) {
+                    accountNumber = "****" + String.valueOf(accountId);
+                } else {
+                    // Mask account number for privacy - show only last 4 digits
+                    accountNumber = "****" + accountNumber.substring(Math.max(0, accountNumber.length() - 4));
+                }
+                
+                String accountType = rs.getString("account_type");
+                if (accountType == null || accountType.isEmpty()) {
+                    accountType = "Checking"; // Default account type
+                }
+                
+                double balance = rs.getDouble("balance");
+                
+                // Determine account status - for demo purposes, any account with balance <= 0 is "Inactive"
+                String status = balance > 0 ? "Active" : "Inactive";
+                
+                // Add row to table
+                tableModel.addRow(new Object[]{
+                    username,
+                    accountNumber,
+                    accountType,
+                    balance,
+                    status
+                });
+            }
+            
+            // If no accounts were found, display a message
+            if (tableModel.getRowCount() == 0) {
+                tableModel.addRow(new Object[]{"No accounts found", "", "", "", ""});
+            }
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, 
+                "Error loading account data: " + e.getMessage(),
+                "Database Error", 
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Helper method to navigate between screens
+     */
+    private void navigateToScreen(String screenName) {
+        dispose(); // Close the current window
+        
+        switch (screenName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Transaction Oversight":
+                SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
+                break;
+            case "Reports":
+                SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+                break;
+            case "Approval Queue":
+                // For now, just show a message and return to dashboard
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Approval Queue screen is under development.", 
+                    "Coming Soon", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Audit Logs":
+                // For now, just show a message and return to dashboard
+                javax.swing.JOptionPane.showMessageDialog(null, 
+                    "Audit Logs screen is under development.", 
+                    "Coming Soon", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            default:
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+        }
     }
 
     public static void main(String[] args) {

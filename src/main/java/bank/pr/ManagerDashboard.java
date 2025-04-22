@@ -13,6 +13,12 @@ import java.awt.Shape;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
@@ -22,19 +28,160 @@ import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
 public class ManagerDashboard extends JFrame {
+    
+    // Dashboard metrics
+    private int pendingApprovals = 0;
+    private int flaggedTransactions = 0;
+    private int highRiskAccounts = 0;
+    private int newCustomers = 0;
+    
+    // Admin information
+    private String adminName = "";
+    private String adminLastLogin = "";
+    
+    // UI Components that need to be updated
+    private JLabel pendingApprovalsLabel;
+    private JLabel flaggedTransactionsLabel;
+    private JLabel highRiskAccountsLabel;
+    private JLabel newCustomersLabel;
+    private JLabel subHeaderLabel;
+    
+    // Admin ID for logged in admin
+    private int adminId = 0;
 
     public ManagerDashboard() {
+        initialize();
+    }
+    
+    public ManagerDashboard(int adminId) {
+        this.adminId = adminId;
+        initialize();
+    }
+    
+    private void initialize() {
         setTitle("KOB Manager Dashboard");
         setSize(1000, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
+        // Load admin information
+        loadAdminInfo();
+        
+        // Load metrics from database
+        loadMetricsFromDatabase();
+
         JPanel sidebarPanel = createSidebarPanel();
         add(sidebarPanel, BorderLayout.WEST);
 
         JPanel mainContentPanel = createMainContentPanel();
         add(mainContentPanel, BorderLayout.CENTER);
+        
+        setVisible(true);
+    }
+    
+    /**
+     * Loads admin information from the database
+     */
+    private void loadAdminInfo() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query;
+            
+            if (adminId > 0) {
+                // If admin ID is provided, get specific admin info
+                query = "SELECT first_name, last_name, last_login FROM admin WHERE admin_id = ?";
+                PreparedStatement stmt = conn.prepareStatement(query);
+                stmt.setInt(1, adminId);
+                ResultSet rs = stmt.executeQuery();
+                
+                if (rs.next()) {
+                    adminName = rs.getString("first_name") + " " + rs.getString("last_name");
+                    
+                    // Format the last login time if it exists
+                    java.sql.Timestamp lastLogin = rs.getTimestamp("last_login");
+                    if (lastLogin != null) {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy hh:mm a");
+                        adminLastLogin = dateFormat.format(new Date(lastLogin.getTime()));
+                    } else {
+                        adminLastLogin = "First login";
+                    }
+                }
+            } else {
+                // If no specific admin ID, get the first admin in the database (fallback)
+                query = "SELECT first_name, last_name, last_login FROM admin LIMIT 1";
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery();
+                
+                if (rs.next()) {
+                    adminName = rs.getString("first_name") + " " + rs.getString("last_name");
+                    
+                    // Format the last login time if it exists
+                    java.sql.Timestamp lastLogin = rs.getTimestamp("last_login");
+                    if (lastLogin != null) {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd yyyy hh:mm a");
+                        adminLastLogin = dateFormat.format(new Date(lastLogin.getTime()));
+                    } else {
+                        adminLastLogin = "First login";
+                    }
+                } else {
+                    // If no admin found at all, use default values
+                    adminName = "Administrator";
+                    adminLastLogin = "Today";
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error loading admin information: " + e.getMessage());
+            adminName = "Administrator";
+            adminLastLogin = "Today";
+        }
+    }
+    
+    /**
+     * Loads metrics from the database
+     */
+    private void loadMetricsFromDatabase() {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Get pending approvals count (transactions with PENDING status)
+            String pendingApprovalsQuery = "SELECT COUNT(*) FROM transactions WHERE status = 'PENDING'";
+            try (PreparedStatement stmt = conn.prepareStatement(pendingApprovalsQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    pendingApprovals = rs.getInt(1);
+                }
+            }
+            
+            // Get flagged transactions count (any transactions that need attention)
+            // Looking for either FLAGGED status or large amounts (over $1000) as potential flags
+            String flaggedTransactionsQuery = "SELECT COUNT(*) FROM transactions WHERE status = 'FLAGGED' OR amount > 1000";
+            try (PreparedStatement stmt = conn.prepareStatement(flaggedTransactionsQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    flaggedTransactions = rs.getInt(1);
+                }
+            }
+            
+            // Get high-risk accounts count (accounts with balance > 10000)
+            String highRiskAccountsQuery = "SELECT COUNT(*) FROM accounts WHERE balance > 10000";
+            try (PreparedStatement stmt = conn.prepareStatement(highRiskAccountsQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    highRiskAccounts = rs.getInt(1);
+                }
+            }
+            
+            // Get new customers count (accounts created in the last 7 days)
+            String newCustomersQuery = "SELECT COUNT(*) FROM accounts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            try (PreparedStatement stmt = conn.prepareStatement(newCustomersQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    newCustomers = rs.getInt(1);
+                }
+            }
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error loading metrics: " + e.getMessage(), 
+                                         "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JPanel createSidebarPanel() {
@@ -59,6 +206,15 @@ public class ManagerDashboard extends JFrame {
         dashboardBtn.setBackground(new Color(51, 51, 51));
         dashboardBtn.setBounds(20, 120, 200, 40);
         dashboardBtn.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        dashboardBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Add action listener to dashboard button
+        dashboardBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Already on dashboard, no need to navigate
+            }
+        });
 
         JLabel dashboardLabel = new JLabel("Dashboard");
         dashboardLabel.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -83,7 +239,7 @@ public class ManagerDashboard extends JFrame {
             menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             menuLabel.addMouseListener(new MouseAdapter() {
                 public void mouseClicked(MouseEvent evt) {
-                    JOptionPane.showMessageDialog(null, "Navigating to " + item);
+                    navigateToScreen(item);
                 }
 
                 public void mouseEntered(MouseEvent evt) {
@@ -99,6 +255,39 @@ public class ManagerDashboard extends JFrame {
         }
 
         return sidebarPanel;
+    }
+    
+    /**
+     * Handles navigation to different screens
+     */
+    private void navigateToScreen(String screenName) {
+        dispose(); // Close the current window
+        
+        switch (screenName) {
+            case "Customer Accounts":
+                SwingUtilities.invokeLater(() -> new CustomerAccounts().setVisible(true));
+                break;
+            case "Transaction Oversight":
+                SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
+                break;
+            case "Reports":
+                SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+                break;
+            case "Approval Queue":
+                JOptionPane.showMessageDialog(null, 
+                    "Approval Queue screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Audit Logs":
+                JOptionPane.showMessageDialog(null, 
+                    "Audit Logs screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            default:
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+        }
     }
 
     private JPanel createMainContentPanel() {
@@ -125,7 +314,8 @@ public class ManagerDashboard extends JFrame {
         headerLabel.setBounds(60, 50, 250, 30);
         contentPanel.add(headerLabel);
 
-        JLabel subHeaderLabel = new JLabel("Hello, Sarah Johnson | Last login: Today 09:42 AM");
+        // Use the admin name from database if available
+        subHeaderLabel = new JLabel("Hello, " + adminName + " | Last login: " + adminLastLogin);
         subHeaderLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         subHeaderLabel.setForeground(new Color(102, 102, 102));
         subHeaderLabel.setBounds(60, 80, 400, 20);
@@ -137,14 +327,20 @@ public class ManagerDashboard extends JFrame {
         overviewLabel.setBounds(60, 130, 150, 15);
         contentPanel.add(overviewLabel);
 
+        // Create metric cards with data from database
+        pendingApprovalsLabel = new JLabel(String.valueOf(pendingApprovals));
+        flaggedTransactionsLabel = new JLabel(String.valueOf(flaggedTransactions));
+        highRiskAccountsLabel = new JLabel(String.valueOf(highRiskAccounts));
+        newCustomersLabel = new JLabel(String.valueOf(newCustomers));
+        
         MetricCard[] metricCards = {
-            new MetricCard("Pending Approvals", "12", new Color(0, 123, 255), new Color(230, 247, 255)),
-            new MetricCard("Flagged Transactions", "3", new Color(40, 167, 69), new Color(230, 255, 234)),
-            new MetricCard("High-Risk Accounts", "2", new Color(220, 53, 69), new Color(255, 230, 230)),
-            new MetricCard("New Customers", "5", new Color(111, 66, 193), new Color(230, 230, 255))
+            new MetricCard("Pending Approvals", pendingApprovalsLabel, new Color(0, 123, 255), new Color(230, 247, 255)),
+            new MetricCard("Flagged Transactions", flaggedTransactionsLabel, new Color(40, 167, 69), new Color(230, 255, 234)),
+            new MetricCard("High-Risk Accounts", highRiskAccountsLabel, new Color(220, 53, 69), new Color(255, 230, 230)),
+            new MetricCard("New Customers", newCustomersLabel, new Color(111, 66, 193), new Color(230, 230, 255))
         };
 
-        int xPos = 10;
+        int xPos = 60;
         for (MetricCard card : metricCards) {
             card.setBounds(xPos, 150, 130, 80);
             contentPanel.add(card);
@@ -173,6 +369,35 @@ public class ManagerDashboard extends JFrame {
         toolCards[2].setBounds(60, 470, 240, 140);
         toolCards[3].setBounds(340, 470, 240, 140);
 
+        // Add action listeners to tool cards
+        toolCards[0].addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToScreen("Customer Accounts");
+            }
+        });
+        
+        toolCards[1].addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToScreen("Transaction Oversight");
+            }
+        });
+        
+        toolCards[2].addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToScreen("Approval Queue");
+            }
+        });
+        
+        toolCards[3].addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToScreen("Reports");
+            }
+        });
+
         for (ToolCard card : toolCards) {
             contentPanel.add(card);
         }
@@ -181,6 +406,26 @@ public class ManagerDashboard extends JFrame {
         logoutBtn.setBackground(new Color(255, 230, 230));
         logoutBtn.setBounds(60, 660, 120, 40);
         logoutBtn.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
+        logoutBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        // Add action to logout button
+        logoutBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int response = JOptionPane.showConfirmDialog(
+                    ManagerDashboard.this,
+                    "Are you sure you want to logout?",
+                    "Confirm Logout",
+                    JOptionPane.YES_NO_OPTION
+                );
+                
+                if (response == JOptionPane.YES_OPTION) {
+                    dispose();
+                    // Show login screen
+                    SwingUtilities.invokeLater(() -> new LoginUI().setVisible(true));
+                }
+            }
+        });
 
         JLabel logoutLabel = new JLabel("Logout");
         logoutLabel.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -188,14 +433,54 @@ public class ManagerDashboard extends JFrame {
         logoutBtn.add(logoutLabel);
         contentPanel.add(logoutBtn);
 
+        // Add refresh button
+        RoundedPanel refreshBtn = new RoundedPanel(8);
+        refreshBtn.setBackground(new Color(230, 247, 255));
+        refreshBtn.setBounds(190, 660, 120, 40);
+        refreshBtn.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 10));
+        refreshBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        
+        refreshBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                loadMetricsFromDatabase();
+                updateMetricLabels();
+                JOptionPane.showMessageDialog(
+                    ManagerDashboard.this,
+                    "Dashboard data refreshed successfully.",
+                    "Refresh Complete",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+            }
+        });
+
+        JLabel refreshLabel = new JLabel("Refresh");
+        refreshLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        refreshLabel.setForeground(new Color(0, 123, 255));
+        refreshBtn.add(refreshLabel);
+        contentPanel.add(refreshBtn);
+
         return mainPanel;
+    }
+    
+    /**
+     * Updates the metric labels with the latest data
+     */
+    private void updateMetricLabels() {
+        pendingApprovalsLabel.setText(String.valueOf(pendingApprovals));
+        flaggedTransactionsLabel.setText(String.valueOf(flaggedTransactions));
+        highRiskAccountsLabel.setText(String.valueOf(highRiskAccounts));
+        newCustomersLabel.setText(String.valueOf(newCustomers));
     }
 
     static class MetricCard extends RoundedPanel {
-        public MetricCard(String title, String value, Color textColor, Color bgColor) {
+        public MetricCard(String title, JLabel valueLabel, Color textColor, Color bgColor) {
             super(8);
             setBackground(bgColor);
             setLayout(null);
+            
+            // Make the card clickable
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             JLabel titleLabel = new JLabel(title);
             titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
@@ -203,10 +488,9 @@ public class ManagerDashboard extends JFrame {
             titleLabel.setBounds(10, 10, 120, 15);
             add(titleLabel);
 
-            JLabel valueLabel = new JLabel(value);
             valueLabel.setFont(new Font("Arial", Font.BOLD, 32));
             valueLabel.setForeground(textColor);
-            valueLabel.setBounds(40, 30, 60, 40);
+            valueLabel.setBounds(50, 30, 60, 40);
             add(valueLabel);
         }
     }
@@ -217,6 +501,9 @@ public class ManagerDashboard extends JFrame {
             setBackground(Color.WHITE);
             setBorder(BorderFactory.createLineBorder(new Color(224, 224, 224), 1));
             setLayout(null);
+            
+            // Make the card clickable
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             RoundedPanel icon = new RoundedPanel(8);
             icon.setBackground(bgColor);
@@ -239,6 +526,7 @@ public class ManagerDashboard extends JFrame {
             button.setBackground(bgColor);
             button.setBounds(20, 110, 80, 30);
             button.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 5));
+            button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
             JLabel buttonLabel = new JLabel(buttonText);
             buttonLabel.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -270,6 +558,19 @@ public class ManagerDashboard extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Test database connection
+                Connection conn = DatabaseConnection.getConnection();
+                conn.close();
+                
+                // If connection successful, show dashboard
+                new ManagerDashboard().setVisible(true);
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, 
+                    "Cannot connect to database: " + e.getMessage(), 
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
     }
 }

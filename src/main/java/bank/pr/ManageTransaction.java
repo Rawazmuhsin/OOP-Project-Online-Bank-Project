@@ -6,6 +6,14 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -23,8 +31,21 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
 public class ManageTransaction extends JFrame {
+    
+    private DefaultTableModel tableModel;
+    private JTable transactionsTable;
+    private int adminId = 0;
 
     public ManageTransaction() {
+        initialize();
+    }
+    
+    public ManageTransaction(int adminId) {
+        this.adminId = adminId;
+        initialize();
+    }
+    
+    private void initialize() {
         setTitle("KOB Manager - Transaction Management");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -89,7 +110,13 @@ public class ManageTransaction extends JFrame {
                 }
             });
             
-           
+            // Add action listener for navigation
+            menuButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    navigateToScreen(item);
+                }
+            });
             
             sidebarPanel.add(menuButton);
             yPos += 40;
@@ -162,51 +189,50 @@ public class ManageTransaction extends JFrame {
 
         contentPanel.add(filterPanel2);
 
-        // Table
+        // Table with real data
         String[] columnNames = {"DATE", "CUSTOMER", "TYPE", "ACCOUNT", "AMOUNT", "STATUS", "ACTIONS"};
-        Object[][] data = {
-            {"01/01/2025", "John Doe", "Deposit", "****1234", "+$1,000.00", "Completed", "Details"},
-            {"01/02/2025", "Jane Smith", "Withdrawal", "****5678", "-$500.00", "Completed", "Details"},
-            {"01/03/2025", "Robert Johnson", "Transfer", "****9012", "-$1,200.00", "Pending", "Review"}
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+        
+        // Create table model for dynamic updates
+        tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == 6; // Only make Actions column editable
             }
         };
 
-        JTable table = new JTable(model);
-        table.setRowHeight(30);
-        table.setShowGrid(false);
-        table.setIntercellSpacing(new Dimension(0, 0));
-        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        transactionsTable = new JTable(tableModel);
+        transactionsTable.setRowHeight(30);
+        transactionsTable.setShowGrid(false);
+        transactionsTable.setIntercellSpacing(new Dimension(0, 0));
+        transactionsTable.setFont(new Font("Arial", Font.PLAIN, 14));
+        
+        // Load transaction data from database
+        loadTransactionData();
         
         // Custom renderers for different columns
-        table.getColumnModel().getColumn(2).setCellRenderer(new TransactionTypeRenderer());
-        table.getColumnModel().getColumn(4).setCellRenderer(new AmountRenderer());
-        table.getColumnModel().getColumn(5).setCellRenderer(new StatusRenderer());
-        table.getColumnModel().getColumn(6).setCellRenderer(new ActionRenderer());
+        transactionsTable.getColumnModel().getColumn(2).setCellRenderer(new TransactionTypeRenderer());
+        transactionsTable.getColumnModel().getColumn(4).setCellRenderer(new AmountRenderer());
+        transactionsTable.getColumnModel().getColumn(5).setCellRenderer(new StatusRenderer());
+        transactionsTable.getColumnModel().getColumn(6).setCellRenderer(new ActionRenderer());
         
         // Set column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(100);
-        table.getColumnModel().getColumn(1).setPreferredWidth(150);
-        table.getColumnModel().getColumn(2).setPreferredWidth(100);
-        table.getColumnModel().getColumn(3).setPreferredWidth(100);
-        table.getColumnModel().getColumn(4).setPreferredWidth(100);
-        table.getColumnModel().getColumn(5).setPreferredWidth(100);
-        table.getColumnModel().getColumn(6).setPreferredWidth(100);
+        transactionsTable.getColumnModel().getColumn(0).setPreferredWidth(120);
+        transactionsTable.getColumnModel().getColumn(1).setPreferredWidth(150);
+        transactionsTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        transactionsTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        transactionsTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        transactionsTable.getColumnModel().getColumn(5).setPreferredWidth(100);
+        transactionsTable.getColumnModel().getColumn(6).setPreferredWidth(100);
 
         // Style table header
-        JTableHeader header = table.getTableHeader();
+        JTableHeader header = transactionsTable.getTableHeader();
         header.setBackground(new Color(248, 250, 252)); // #f8fafc
         header.setForeground(new Color(52, 58, 64)); // #343a40
         header.setFont(new Font("Arial", Font.PLAIN, 14));
         header.setBorder(BorderFactory.createEmptyBorder());
         header.setReorderingAllowed(false);
 
-        JScrollPane scrollPane = new JScrollPane(table);
+        JScrollPane scrollPane = new JScrollPane(transactionsTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         contentPanel.add(scrollPane);
 
@@ -223,14 +249,14 @@ public class ManageTransaction extends JFrame {
         prevButton.setFocusPainted(false);
         prevButton.addActionListener(e -> {
             dispose();
-     
+            SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
         });
         paginationPanel.add(prevButton);
 
         for (int i = 1; i <= 5; i++) {
             JButton pageButton = new JButton(String.valueOf(i));
             pageButton.setFont(new Font("Arial", Font.PLAIN, 14));
-            if (i == 2) {
+            if (i == 1) { // First page is active by default
                 pageButton.setBackground(new Color(13, 110, 253)); // #0d6efd
                 pageButton.setForeground(Color.WHITE);
                 pageButton.setBorder(BorderFactory.createLineBorder(new Color(13, 110, 253)));
@@ -259,10 +285,159 @@ public class ManageTransaction extends JFrame {
         exportButton.setFocusPainted(false);
         exportButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Exporting to CSV..."));
         paginationPanel.add(exportButton);
+        
+        // Add refresh button
+        JButton refreshButton = new JButton("Refresh Data");
+        refreshButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        refreshButton.setBackground(new Color(230, 247, 255));
+        refreshButton.setForeground(new Color(13, 110, 253));
+        refreshButton.setBorder(BorderFactory.createLineBorder(new Color(230, 247, 255)));
+        refreshButton.setFocusPainted(false);
+        refreshButton.addActionListener(e -> {
+            loadTransactionData();
+            JOptionPane.showMessageDialog(this, 
+                "Transaction data refreshed successfully.",
+                "Refresh Complete", 
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        paginationPanel.add(refreshButton);
 
         contentPanel.add(paginationPanel);
         mainPanel.add(contentPanel, BorderLayout.NORTH);
         return mainPanel;
+    }
+    
+    /**
+     * Loads transaction data from the database
+     */
+    private void loadTransactionData() {
+        // Clear existing data
+        tableModel.setRowCount(0);
+        
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat displayFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
+        DecimalFormat currencyFormat = new DecimalFormat("$#,##0.00");
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Join with accounts table to get usernames
+            String query = "SELECT t.transaction_id, t.account_id, t.transaction_type, t.amount, " +
+                           "t.transaction_date, t.description, t.status, t.account_number, " +
+                           "a.username, a.account_number as full_account_number " +
+                           "FROM transactions t " +
+                           "LEFT JOIN accounts a ON t.account_id = a.account_id " +
+                           "ORDER BY t.transaction_date DESC";
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String transactionDate = "";
+                try {
+                    java.sql.Timestamp timestamp = rs.getTimestamp("transaction_date");
+                    transactionDate = displayFormat.format(timestamp);
+                } catch (Exception e) {
+                    transactionDate = "N/A";
+                }
+                
+                String username = rs.getString("username");
+                if (username == null || username.isEmpty()) {
+                    username = "User #" + rs.getInt("account_id");
+                }
+                
+                String transactionType = rs.getString("transaction_type");
+                
+                String accountNumber = rs.getString("full_account_number");
+                if (accountNumber == null || accountNumber.isEmpty()) {
+                    accountNumber = "****" + rs.getInt("account_id");
+                } else {
+                    // Mask account number for privacy
+                    accountNumber = "****" + accountNumber.substring(Math.max(0, accountNumber.length() - 4));
+                }
+                
+                double amount = rs.getDouble("amount");
+                String formattedAmount = "";
+                
+                // Format amount with sign
+                if (transactionType.equalsIgnoreCase("Deposit")) {
+                    formattedAmount = "+" + currencyFormat.format(Math.abs(amount));
+                } else if (transactionType.equalsIgnoreCase("Withdrawal")) {
+                    formattedAmount = "-" + currencyFormat.format(Math.abs(amount));
+                } else {
+                    // For transfers, negative amounts are outgoing, positive are incoming
+                    if (amount < 0) {
+                        formattedAmount = "-" + currencyFormat.format(Math.abs(amount));
+                    } else {
+                        formattedAmount = "+" + currencyFormat.format(amount);
+                    }
+                }
+                
+                String status = rs.getString("status");
+                if (status == null || status.isEmpty()) {
+                    status = "PENDING";
+                }
+                
+                // Action button text based on status
+                String actionText = status.equals("APPROVED") ? "Details" : "Review";
+                
+                // Add the row to the table
+                tableModel.addRow(new Object[]{
+                    transactionDate,
+                    username,
+                    transactionType,
+                    accountNumber,
+                    formattedAmount,
+                    status,
+                    actionText
+                });
+            }
+            
+            // If no transactions were found, display a message
+            if (tableModel.getRowCount() == 0) {
+                tableModel.addRow(new Object[]{"No transactions found", "", "", "", "", "", ""});
+            }
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, 
+                "Error loading transaction data: " + e.getMessage(),
+                "Database Error", 
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Helper method to navigate between screens
+     */
+    private void navigateToScreen(String screenName) {
+        dispose(); // Close the current window
+        
+        switch (screenName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Customer Accounts":
+                SwingUtilities.invokeLater(() -> new CustomerAccounts(adminId).setVisible(true));
+                break;
+            case "Reports":
+                SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+                break;
+            case "Approval Queue":
+                // For now, just show a message and return to dashboard
+                JOptionPane.showMessageDialog(null, 
+                    "Approval Queue screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Audit Logs":
+                // For now, just show a message and return to dashboard
+                JOptionPane.showMessageDialog(null, 
+                    "Audit Logs screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            default:
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+        }
     }
 
     // Custom renderer for Transaction Type column
@@ -275,12 +450,21 @@ public class ManageTransaction extends JFrame {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setOpaque(true);
 
-            if (value.equals("Deposit")) {
+            if (value == null) {
+                return label;
+            }
+            
+            String type = value.toString();
+            if (type.equalsIgnoreCase("Deposit")) {
                 label.setBackground(new Color(230, 255, 250)); // #e6fffa
                 label.setForeground(new Color(13, 110, 253)); // #0d6efd
-            } else {
+            } else if (type.equalsIgnoreCase("Withdrawal")) {
                 label.setBackground(new Color(255, 236, 236)); // #ffecec
                 label.setForeground(new Color(220, 53, 69)); // #dc3545
+            } else {
+                // Transfer or other types
+                label.setBackground(new Color(255, 250, 230));
+                label.setForeground(new Color(255, 153, 0));
             }
             label.setBorder(BorderFactory.createLineBorder(label.getBackground()));
             return label;
@@ -296,9 +480,13 @@ public class ManageTransaction extends JFrame {
                     table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.RIGHT);
             
+            if (value == null) {
+                return label;
+            }
+            
             if (value.toString().startsWith("+")) {
                 label.setForeground(new Color(0, 128, 0)); // Green for positive
-            } else {
+            } else if (value.toString().startsWith("-")) {
                 label.setForeground(new Color(220, 53, 69)); // Red for negative
             }
             return label;
@@ -315,9 +503,17 @@ public class ManageTransaction extends JFrame {
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setOpaque(true);
 
-            if (value.equals("Completed")) {
+            if (value == null) {
+                return label;
+            }
+            
+            String status = value.toString();
+            if (status.equalsIgnoreCase("APPROVED")) {
                 label.setBackground(new Color(230, 255, 250)); // #e6fffa
                 label.setForeground(new Color(13, 110, 253)); // #0d6efd
+            } else if (status.equalsIgnoreCase("PENDING")) {
+                label.setBackground(new Color(255, 250, 230));
+                label.setForeground(new Color(255, 153, 0));
             } else {
                 label.setBackground(new Color(255, 236, 236)); // #ffecec
                 label.setForeground(new Color(220, 53, 69)); // #dc3545

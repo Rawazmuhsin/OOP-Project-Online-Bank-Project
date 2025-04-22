@@ -7,6 +7,8 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,6 +17,7 @@ import java.sql.SQLException;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -22,6 +25,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
@@ -29,6 +33,8 @@ public class LoginUI extends JFrame {
 
     private JTextField userField;
     private JPasswordField passField;
+    private JRadioButton userRadio;
+    private JRadioButton adminRadio;
 
     public LoginUI() {
         setTitle(" Kurdish - O - Banking (KOB)");
@@ -50,6 +56,37 @@ public class LoginUI extends JFrame {
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 40)));
+
+        // User Type Selection Panel
+        JPanel userTypePanel = new JPanel();
+        userTypePanel.setLayout(new BoxLayout(userTypePanel, BoxLayout.X_AXIS));
+        userTypePanel.setBackground(Color.WHITE);
+        userTypePanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel userTypeLabel = new JLabel("Login as:");
+        userTypeLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        userTypePanel.add(userTypeLabel);
+        userTypePanel.add(Box.createRigidArea(new Dimension(20, 0)));
+
+        userRadio = new JRadioButton("User");
+        userRadio.setFont(new Font("Arial", Font.PLAIN, 16));
+        userRadio.setBackground(Color.WHITE);
+        userRadio.setSelected(true);
+
+        adminRadio = new JRadioButton("Admin");
+        adminRadio.setFont(new Font("Arial", Font.PLAIN, 16));
+        adminRadio.setBackground(Color.WHITE);
+
+        ButtonGroup group = new ButtonGroup();
+        group.add(userRadio);
+        group.add(adminRadio);
+
+        userTypePanel.add(userRadio);
+        userTypePanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        userTypePanel.add(adminRadio);
+
+        mainPanel.add(userTypePanel);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         JPanel emailPanel = new JPanel();
         emailPanel.setLayout(new BoxLayout(emailPanel, BoxLayout.Y_AXIS));
@@ -110,7 +147,16 @@ public class LoginUI extends JFrame {
         mainPanel.add(Box.createRigidArea(new Dimension(0, 40)));
 
         JButton loginButton = createStyledButton("LOGIN", 600, 60);
-        loginButton.addActionListener(e -> attemptLogin());
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (adminRadio.isSelected()) {
+                    attemptAdminLogin();
+                } else {
+                    attemptUserLogin();
+                }
+            }
+        });
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainPanel.add(loginButton);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
@@ -162,7 +208,7 @@ public class LoginUI extends JFrame {
         return button;
     }
 
-    private void attemptLogin() {
+    private void attemptUserLogin() {
         String email = userField.getText();
         String password = new String(passField.getPassword());
 
@@ -175,7 +221,7 @@ public class LoginUI extends JFrame {
         }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
-            // Modified query to get all necessary account information including account_type and balance
+            // Query to get user account information by email
             String query = "SELECT account_id, username, email FROM accounts WHERE email = ? AND password = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, email);
@@ -186,6 +232,17 @@ public class LoginUI extends JFrame {
             if (rs.next()) {
                 String userName = rs.getString("username");
                 int userId = rs.getInt("account_id");
+
+                // Update last login time (optional)
+                try {
+                    String updateQuery = "UPDATE accounts SET last_login = NOW() WHERE account_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setInt(1, userId);
+                    updateStmt.executeUpdate();
+                } catch (SQLException ex) {
+                    // Not critical if this fails, so just log it
+                    System.err.println("Could not update last login time: " + ex.getMessage());
+                }
 
                 dispose();
 
@@ -198,6 +255,70 @@ public class LoginUI extends JFrame {
             } else {
                 JOptionPane.showMessageDialog(this,
                     "Invalid email or password",
+                    "Login Failed",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Database error: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+    
+    private void attemptAdminLogin() {
+        String email = userField.getText();
+        String password = new String(passField.getPassword());
+
+        if (email.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Please enter both email and password",
+                "Login Error",
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Query admin table by email
+            String query = "SELECT admin_id, username, first_name, last_name FROM admin WHERE email = ? AND password = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, email);
+            stmt.setString(2, password);
+
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                int adminId = rs.getInt("admin_id");
+                String adminName = rs.getString("first_name") + " " + rs.getString("last_name");
+                
+                // Update last login time
+                try {
+                    String updateQuery = "UPDATE admin SET last_login = NOW() WHERE admin_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setInt(1, adminId);
+                    updateStmt.executeUpdate();
+                } catch (SQLException ex) {
+                    // Not critical if this fails, so just log it
+                    System.err.println("Could not update last login time: " + ex.getMessage());
+                }
+
+                dispose();
+
+                // Create and show the manager dashboard for admin users
+                SwingUtilities.invokeLater(() -> {
+                    new ManagerDashboard().setVisible(true);
+                });
+                
+                // Show welcome message for admin
+                JOptionPane.showMessageDialog(null,
+                    "Welcome, " + adminName + "!",
+                    "Admin Login Successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Invalid admin email or password",
                     "Login Failed",
                     JOptionPane.ERROR_MESSAGE);
             }

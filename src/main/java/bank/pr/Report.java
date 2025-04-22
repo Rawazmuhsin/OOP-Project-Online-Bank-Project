@@ -4,11 +4,14 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -108,7 +111,7 @@ public class Report extends JFrame {
         templatePanel.setBounds(70, 220, 390, 30);
         JLabel templateLabel = new JLabel("Select Report Template");
         templateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        templateLabel.setForeground(new Color(52, 58, 64));
+        templateLabel.setForeground(new Color(52, 58, 64)); // #343a40
         templatePanel.add(templateLabel);
         contentPanel.add(templatePanel);
         
@@ -168,10 +171,92 @@ public class Report extends JFrame {
         exportOptionsButton.setFont(new Font("Arial", Font.PLAIN, 14));
         contentPanel.add(exportOptionsButton);
         
+        // Add the back to dashboard button
+        JButton backToDashboardButton = new JButton("Back to Dashboard");
+        backToDashboardButton.setBounds(70, 680, 140, 30);
+        backToDashboardButton.setBackground(new Color(248, 250, 252));
+        backToDashboardButton.setForeground(new Color(52, 58, 64));
+        backToDashboardButton.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
+        backToDashboardButton.setFocusPainted(false);
+        backToDashboardButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        backToDashboardButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+            }
+        });
+        contentPanel.add(backToDashboardButton);
+        
+        // Add navigation for sidebar menu items
+        addSidebarNavigation(mainPanel);
+        
         // Set layout to null for absolute positioning
         mainPanel.setLayout(null);
         mainPanel.add(contentPanel);
         add(mainPanel);
+    }
+    
+    /**
+     * Adds click listeners to the sidebar menu items for navigation
+     */
+    private void addSidebarNavigation(JPanel mainPanel) {
+        // Create invisible buttons over the sidebar text for navigation
+        String[] menuItems = {"Dashboard", "Customer Accounts", "Transactions", "Approvals", "Audit Logs"};
+        int[] yPositions = {220, 260, 300, 340, 380};
+        
+        for (int i = 0; i < menuItems.length; i++) {
+            JButton navButton = new JButton();
+            navButton.setBounds(20, yPositions[i] - 15, 210, 30);
+            navButton.setOpaque(false);
+            navButton.setContentAreaFilled(false);
+            navButton.setBorderPainted(false);
+            
+            final String item = menuItems[i];
+            navButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    navigateToScreen(item);
+                }
+            });
+            
+            mainPanel.add(navButton);
+        }
+    }
+    
+    /**
+     * Helper method to navigate between screens
+     */
+    private void navigateToScreen(String screenName) {
+        dispose(); // Close the current window
+        
+        switch (screenName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                break;
+            case "Customer Accounts":
+                SwingUtilities.invokeLater(() -> new CustomerAccounts().setVisible(true));
+                break;
+            case "Transactions":
+                SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
+                break;
+            case "Approvals":
+                // For now, just show a message and return to dashboard
+                JOptionPane.showMessageDialog(null, 
+                    "Approval Queue screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                break;
+            case "Audit Logs":
+                // For now, just show a message and return to dashboard
+                JOptionPane.showMessageDialog(null, 
+                    "Audit Logs screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                break;
+            default:
+                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+        }
     }
     
     public static void main(String[] args) {
