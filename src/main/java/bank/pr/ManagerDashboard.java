@@ -137,8 +137,7 @@ public class ManagerDashboard extends JFrame {
     }
     
     /**
-     * Loads metrics from the database
-     */
+show up info     */
     private void loadMetricsFromDatabase() {
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Get pending approvals count (transactions with PENDING status)
@@ -260,35 +259,34 @@ public class ManagerDashboard extends JFrame {
     /**
      * Handles navigation to different screens
      */
-    private void navigateToScreen(String screenName) {
-        dispose(); // Close the current window
-        
-        switch (screenName) {
-            case "Customer Accounts":
-                SwingUtilities.invokeLater(() -> new CustomerAccounts().setVisible(true));
-                break;
-            case "Transaction Oversight":
-                SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
-                break;
-            case "Reports":
-                SwingUtilities.invokeLater(() -> new Report().setVisible(true));
-                break;
-            case "Approval Queue":
-                JOptionPane.showMessageDialog(null, 
-                    "Approval Queue screen is under development.", 
-                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
-                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
-                break;
-            case "Audit Logs":
-                JOptionPane.showMessageDialog(null, 
-                    "Audit Logs screen is under development.", 
-                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
-                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
-                break;
-            default:
-                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
-        }
+   // In ManagerDashboard.java, update the navigateToScreen method
+private void navigateToScreen(String screenName) {
+    dispose(); // Close the current window
+    
+    switch (screenName) {
+        case "Customer Accounts":
+            SwingUtilities.invokeLater(() -> new CustomerAccounts().setVisible(true));
+            break;
+        case "Transaction Oversight":
+            SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
+            break;
+        case "Reports":
+            SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+            break;
+        case "Approval Queue":
+            // Instead of showing a message, navigate to ApproveTransaction
+            SwingUtilities.invokeLater(() -> new ApproveTransaction(adminId).setVisible(true));
+            break;
+        case "Audit Logs":
+            JOptionPane.showMessageDialog(null, 
+                "Audit Logs screen is under development.", 
+                "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+            SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+            break;
+        default:
+            SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
     }
+}
 
     private JPanel createMainContentPanel() {
         JPanel mainPanel = new JPanel() {

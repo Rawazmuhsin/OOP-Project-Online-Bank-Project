@@ -49,8 +49,17 @@ public class ApproveTransaction extends JFrame {
 
     // Add a reference to the notification label
     private JLabel notificationLabel;
+    
+    // Add adminId field to track the current admin
+    private int adminId = 0;
 
     public ApproveTransaction() {
+        this(0); // Default constructor with default admin ID
+    }
+
+    public ApproveTransaction(int adminId) {
+        this.adminId = adminId;
+        
         setTitle("KOB Manager - Approval Queue");
         setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -79,42 +88,66 @@ public class ApproveTransaction extends JFrame {
         sidebarPanel.setPreferredSize(new Dimension(250, 800));
         sidebarPanel.setBackground(new Color(26, 32, 44)); // #1a202c
         sidebarPanel.setLayout(null);
-
+    
         // Sidebar title
         JLabel titleLabel = new JLabel("KOB Manager");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 200, 30);
         sidebarPanel.add(titleLabel);
-
+    
         // Active sidebar button (Approval Queue)
         JButton approvalButton = createSidebarButton("Approval Queue", true);
         approvalButton.setBounds(20, 100, 210, 40);
         sidebarPanel.add(approvalButton);
-
+    
         // Other sidebar buttons
         String[] menuItems = {"Dashboard", "Customer Accounts", "Transaction Mgmt", "Reports", "Audit Logs"};
         int yPos = 180;
         for (String item : menuItems) {
             JButton menuButton = createSidebarButton(item, false);
             menuButton.setBounds(20, yPos, 210, 30);
-
-            // Add action listener for the Transaction Mgmt button
-            if (item.equals("Transaction Mgmt")) {
+    
+            // Add action listeners for each menu item
+            if (item.equals("Dashboard")) {
                 menuButton.addActionListener(e -> {
+                    dispose();
+                    SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                });
+            } else if (item.equals("Transaction Mgmt")) {
+                menuButton.addActionListener(e -> {
+                    dispose();
                     SwingUtilities.invokeLater(() -> {
-                        new ManageTransaction();
-                        dispose();
+                        new ManageTransaction(adminId);
                     });
                 });
+            } else if (item.equals("Customer Accounts")) {
+                menuButton.addActionListener(e -> {
+                    dispose();
+                    SwingUtilities.invokeLater(() -> new CustomerAccounts(adminId).setVisible(true));
+                });
+            } else if (item.equals("Reports")) {
+                menuButton.addActionListener(e -> {
+                    dispose();
+                    // Fix: Use the Report default constructor as it doesn't accept just adminId
+                    SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+                });
+            } else if (item.equals("Audit Logs")) {
+                menuButton.addActionListener(e -> {
+                    dispose();
+                    JOptionPane.showMessageDialog(null, 
+                        "Audit Logs screen is under development.", 
+                        "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                    SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                });
             }
+            
             sidebarPanel.add(menuButton);
             yPos += 40;
         }
-
+    
         return sidebarPanel;
     }
-
     private JButton createSidebarButton(String text, boolean active) {
         JButton button = new JButton(text);
         button.setHorizontalAlignment(SwingConstants.LEFT);
@@ -257,9 +290,11 @@ public class ApproveTransaction extends JFrame {
         dashboardButton.setPreferredSize(new Dimension(150, 40));
         dashboardButton.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        // Update the dashboard button to navigate back with the admin ID
         dashboardButton.addActionListener(e -> {
             dispose();
-            // Navigate to Dashboard (add implementation)
+            // Navigate to Dashboard with the admin ID
+            SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
         });
 
         // Add hover effect to dashboard button
@@ -666,6 +701,7 @@ public class ApproveTransaction extends JFrame {
             }
         }
     }
+    
     // Reject a specific transaction
     public void rejectTransaction(int transactionId) {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
