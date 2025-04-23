@@ -1,0 +1,3 @@
+for anyone who want to pull this project from github   
+
+you have to import the database which is availabe i  database folder and have to import from your  Mysql workbench  to Provide all System and working in system
