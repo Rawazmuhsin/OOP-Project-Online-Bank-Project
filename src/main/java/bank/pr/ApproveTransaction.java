@@ -363,44 +363,91 @@ public class ApproveTransaction extends JFrame {
     public void approveTransaction(int transactionId) {
         Connection conn = null;
         try {
-            conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-
-            // Start by getting only the transaction details
+            System.out.println("\n========== TRANSACTION APPROVAL LOG ==========");
+            System.out.println("Starting approval process for Transaction ID: " + transactionId);
+            
+            // Get a connection
+            System.out.println("[1] Opening database connection...");
+            try {
+                conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+                System.out.println("    ✓ Connection established successfully");
+            } catch (SQLException e) {
+                System.out.println("    ✗ FAILED to establish database connection");
+                System.out.println("    Error message: " + e.getMessage());
+                throw e;
+            }
+            
+            // Get transaction details
+            System.out.println("[2] Retrieving transaction details...");
             String transactionQuery = "SELECT transaction_id, account_id, amount, transaction_type, description, status " +
                     "FROM transactions WHERE transaction_id = ?";
-            PreparedStatement transactionStmt = conn.prepareStatement(transactionQuery);
-            transactionStmt.setInt(1, transactionId);
-            ResultSet rs = transactionStmt.executeQuery();
-
+            System.out.println("    SQL Query: " + transactionQuery);
+            System.out.println("    Parameters: [" + transactionId + "]");
+            
+            PreparedStatement transactionStmt = null;
+            ResultSet rs = null;
+            try {
+                transactionStmt = conn.prepareStatement(transactionQuery);
+                transactionStmt.setInt(1, transactionId);
+                rs = transactionStmt.executeQuery();
+                System.out.println("    ✓ Query executed successfully");
+            } catch (SQLException e) {
+                System.out.println("    ✗ FAILED to execute transaction query");
+                System.out.println("    Error message: " + e.getMessage());
+                throw e;
+            }
+    
             if (rs.next()) {
                 int accountId = rs.getInt("account_id");
                 double amount = rs.getDouble("amount");
                 String type = rs.getString("transaction_type");
                 String description = rs.getString("description");
                 String status = rs.getString("status");
-
+    
+                System.out.println("    ✓ Transaction found:");
+                System.out.println("      - Account ID: " + accountId);
+                System.out.println("      - Amount: $" + amount);
+                System.out.println("      - Type: " + type);
+                System.out.println("      - Status: " + status);
+                System.out.println("      - Description: " + (description != null ? description : "N/A"));
+                
+                // IMPORTANT FIX: Convert transaction type to uppercase for comparison
+                // This fixes the case-sensitivity issue when comparing transaction types
+                type = type.toUpperCase();
+                System.out.println("      - Normalized Type: " + type);
+    
                 // Verify transaction is pending
                 if (!status.equals("PENDING")) {
+                    System.out.println("    ✗ Transaction is not in PENDING state, current status: " + status);
                     JOptionPane.showMessageDialog(this, 
                         "This transaction has already been processed: " + status, 
                         "Warning", 
                         JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-
-                System.out.println("==== Starting approval process ====");
-                System.out.println("Transaction ID: " + transactionId);
-                System.out.println("Type: " + type);
-                System.out.println("Amount: $" + amount);
-                System.out.println("Account ID: " + accountId);
-
-                // Now get account information separately
+                System.out.println("    ✓ Confirmed transaction is in PENDING state");
+    
+                // Get account information
+                System.out.println("[3] Retrieving account balance information...");
                 String accountQuery = "SELECT balance FROM accounts WHERE account_id = ?";
-                PreparedStatement accountStmt = conn.prepareStatement(accountQuery);
-                accountStmt.setInt(1, accountId);
-                ResultSet accountRs = accountStmt.executeQuery();
+                System.out.println("    SQL Query: " + accountQuery);
+                System.out.println("    Parameters: [" + accountId + "]");
+                
+                PreparedStatement accountStmt = null;
+                ResultSet accountRs = null;
+                try {
+                    accountStmt = conn.prepareStatement(accountQuery);
+                    accountStmt.setInt(1, accountId);
+                    accountRs = accountStmt.executeQuery();
+                    System.out.println("    ✓ Account query executed successfully");
+                } catch (SQLException e) {
+                    System.out.println("    ✗ FAILED to execute account query");
+                    System.out.println("    Error message: " + e.getMessage());
+                    throw e;
+                }
                 
                 if (!accountRs.next()) {
+                    System.out.println("    ✗ Account ID " + accountId + " not found in database");
                     JOptionPane.showMessageDialog(this, 
                         "Account ID " + accountId + " not found in the database.", 
                         "Error", 
@@ -409,84 +456,140 @@ public class ApproveTransaction extends JFrame {
                 }
                 
                 double currentBalance = accountRs.getDouble("balance");
-                System.out.println("Current Balance: $" + currentBalance);
+                System.out.println("    ✓ Current account balance: $" + currentBalance);
                 
-                // Start a transaction to ensure all updates happen atomically
-                conn.setAutoCommit(false);
+                // Start database transaction
+                System.out.println("[4] Beginning database transaction...");
+                try {
+                    conn.setAutoCommit(false);
+                    System.out.println("    ✓ Auto-commit disabled, transaction started");
+                } catch (SQLException e) {
+                    System.out.println("    ✗ FAILED to disable auto-commit");
+                    System.out.println("    Error message: " + e.getMessage());
+                    throw e;
+                }
+                
                 try {
                     double newBalance = currentBalance;
                     
-                    // Handle different transaction types
+                    // Calculate new balance based on transaction type
+                    System.out.println("[5] Calculating new balance based on transaction type: '" + type + "'...");
                     if (type.equals("DEPOSIT")) {
-                        // For deposits, add the amount to the balance
                         newBalance = currentBalance + amount;
-                        System.out.println("Deposit - New Balance: $" + newBalance);
-                        
-                        // Update the account balance
-                        String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
-                        PreparedStatement updateStmt = conn.prepareStatement(updateBalanceQuery);
-                        updateStmt.setDouble(1, newBalance);
-                        updateStmt.setInt(2, accountId);
-                        int rowsAffected = updateStmt.executeUpdate();
-                        System.out.println("Balance update rows affected: " + rowsAffected);
-                        
-                        if (rowsAffected <= 0) {
-                            throw new SQLException("Failed to update account balance. No rows affected.");
-                        }
-                        
+                        System.out.println("    ✓ Deposit transaction - New Balance: $" + newBalance);
+                        System.out.println("      (Current: $" + currentBalance + " + Deposit: $" + amount + ")");
                     } else if (type.equals("WITHDRAW")) {
-                        // For withdrawals, subtract the amount from the balance
                         newBalance = currentBalance - amount;
-                        System.out.println("Withdraw - New Balance: $" + newBalance);
+                        System.out.println("    ✓ Withdrawal transaction - New Balance: $" + newBalance);
+                        System.out.println("      (Current: $" + currentBalance + " - Withdrawal: $" + amount + ")");
                         
                         // Check for sufficient funds
                         if (newBalance < 0) {
+                            System.out.println("    ✗ INSUFFICIENT FUNDS for withdrawal");
+                            System.out.println("      Withdrawal amount: $" + amount + ", Current balance: $" + currentBalance);
                             throw new SQLException("Insufficient funds for withdrawal. Current balance: $" + currentBalance);
                         }
-                        
-                        // Update the account balance
-                        String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
-                        PreparedStatement updateStmt = conn.prepareStatement(updateBalanceQuery);
-                        updateStmt.setDouble(1, newBalance);
-                        updateStmt.setInt(2, accountId);
-                        int rowsAffected = updateStmt.executeUpdate();
-                        System.out.println("Balance update rows affected: " + rowsAffected);
-                        
-                        if (rowsAffected <= 0) {
-                            throw new SQLException("Failed to update account balance. No rows affected.");
-                        }
+                    } else {
+                        System.out.println("    ! Unrecognized transaction type: " + type);
+                        System.out.println("      WARNING: No balance adjustment will be made!");
                     }
                     
-                    // Update transaction status to APPROVED
+                    // Update the account balance
+                    System.out.println("[6] Updating account balance...");
+                    String updateBalanceQuery = "UPDATE accounts SET balance = ? WHERE account_id = ?";
+                    System.out.println("    SQL Query: " + updateBalanceQuery);
+                    System.out.println("    Parameters: [" + newBalance + ", " + accountId + "]");
+                    
+                    PreparedStatement updateStmt = null;
+                    int rowsAffected = 0;
+                    try {
+                        updateStmt = conn.prepareStatement(updateBalanceQuery);
+                        updateStmt.setDouble(1, newBalance);
+                        updateStmt.setInt(2, accountId);
+                        rowsAffected = updateStmt.executeUpdate();
+                        System.out.println("    ✓ Account balance update executed successfully");
+                        System.out.println("      Rows affected: " + rowsAffected);
+                    } catch (SQLException e) {
+                        System.out.println("    ✗ FAILED to update account balance");
+                        System.out.println("    Error message: " + e.getMessage());
+                        throw e;
+                    }
+                    
+                    if (rowsAffected <= 0) {
+                        System.out.println("    ✗ No rows affected by balance update. Account ID might be incorrect.");
+                        throw new SQLException("Failed to update account balance. No rows affected.");
+                    }
+                    
+                    // Update transaction status
+                    System.out.println("[7] Updating transaction status to APPROVED...");
                     String updateStatusQuery = "UPDATE transactions SET status = ?, approval_date = NOW() WHERE transaction_id = ?";
-                    PreparedStatement updateStatusStmt = conn.prepareStatement(updateStatusQuery);
-                    updateStatusStmt.setString(1, "APPROVED");
-                    updateStatusStmt.setInt(2, transactionId);
-                    int statusRowsAffected = updateStatusStmt.executeUpdate();
-                    System.out.println("Status update rows affected: " + statusRowsAffected);
+                    System.out.println("    SQL Query: " + updateStatusQuery);
+                    System.out.println("    Parameters: [APPROVED, " + transactionId + "]");
+                    
+                    PreparedStatement updateStatusStmt = null;
+                    int statusRowsAffected = 0;
+                    try {
+                        updateStatusStmt = conn.prepareStatement(updateStatusQuery);
+                        updateStatusStmt.setString(1, "APPROVED");
+                        updateStatusStmt.setInt(2, transactionId);
+                        statusRowsAffected = updateStatusStmt.executeUpdate();
+                        System.out.println("    ✓ Transaction status update executed successfully");
+                        System.out.println("      Rows affected: " + statusRowsAffected);
+                    } catch (SQLException e) {
+                        System.out.println("    ✗ FAILED to update transaction status");
+                        System.out.println("    Error message: " + e.getMessage());
+                        throw e;
+                    }
                     
                     if (statusRowsAffected <= 0) {
+                        System.out.println("    ✗ No rows affected by status update. Transaction ID might be incorrect.");
                         throw new SQLException("Failed to update transaction status. No rows affected.");
                     }
                     
-                    // Verify the balance update by checking the current balance
-                    PreparedStatement verifyStmt = conn.prepareStatement(accountQuery);
-                    verifyStmt.setInt(1, accountId);
-                    ResultSet verifyRs = verifyStmt.executeQuery();
+                    // Verify the balance update
+                    System.out.println("[8] Verifying account balance update...");
+                    PreparedStatement verifyStmt = null;
+                    ResultSet verifyRs = null;
+                    try {
+                        verifyStmt = conn.prepareStatement(accountQuery);
+                        verifyStmt.setInt(1, accountId);
+                        verifyRs = verifyStmt.executeQuery();
+                        System.out.println("    ✓ Verification query executed successfully");
+                    } catch (SQLException e) {
+                        System.out.println("    ✗ FAILED to execute verification query");
+                        System.out.println("    Error message: " + e.getMessage());
+                        throw e;
+                    }
+                    
                     if (verifyRs.next()) {
                         double verifiedBalance = verifyRs.getDouble("balance");
-                        System.out.println("Verified balance after update: $" + verifiedBalance);
+                        System.out.println("    ✓ Verified current balance: $" + verifiedBalance);
+                        System.out.println("      Expected balance: $" + newBalance);
                         
                         if (Math.abs(verifiedBalance - newBalance) > 0.01) {
-                            System.out.println("WARNING: Balance verification failed!");
+                            System.out.println("    ✗ BALANCE VERIFICATION FAILED!");
+                            System.out.println("      Expected: $" + newBalance + ", Actual: $" + verifiedBalance);
+                            throw new SQLException("Balance verification failed! Expected: $" + newBalance + ", Actual: $" + verifiedBalance);
                         } else {
-                            System.out.println("Balance verification successful!");
+                            System.out.println("    ✓ Balance verification successful!");
                         }
+                    } else {
+                        System.out.println("    ✗ Account not found during verification!");
+                        throw new SQLException("Account not found during verification!");
                     }
                     
                     // Commit all changes
-                    conn.commit();
-                    System.out.println("Transaction committed successfully");
+                    System.out.println("[9] Committing transaction...");
+                    try {
+                        conn.commit();
+                        System.out.println("    ✓ Transaction committed successfully");
+                    } catch (SQLException e) {
+                        System.out.println("    ✗ FAILED to commit transaction");
+                        System.out.println("    Error message: " + e.getMessage());
+                        throw e;
+                    }
+                    
+                    System.out.println("✓✓✓ TRANSACTION APPROVED SUCCESSFULLY ✓✓✓");
                     
                     JOptionPane.showMessageDialog(this,
                         "Transaction approved successfully",
@@ -495,14 +598,16 @@ public class ApproveTransaction extends JFrame {
                     
                 } catch (SQLException e) {
                     // Roll back in case of any error
-                    System.out.println("ERROR: " + e.getMessage());
+                    System.out.println("[!] ERROR OCCURRED: " + e.getMessage());
                     e.printStackTrace();
                     
+                    System.out.println("[!] Attempting to roll back transaction...");
                     try {
                         conn.rollback();
-                        System.out.println("Transaction rolled back");
+                        System.out.println("    ✓ Transaction rolled back successfully");
                     } catch (SQLException rollbackEx) {
-                        System.out.println("Rollback failed: " + rollbackEx.getMessage());
+                        System.out.println("    ✗ FAILED to roll back transaction");
+                        System.out.println("    Error message: " + rollbackEx.getMessage());
                         rollbackEx.printStackTrace();
                     }
                     
@@ -512,14 +617,18 @@ public class ApproveTransaction extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
                 } finally {
                     // Restore auto-commit
+                    System.out.println("[10] Restoring auto-commit...");
                     try {
                         conn.setAutoCommit(true);
+                        System.out.println("    ✓ Auto-commit restored successfully");
                     } catch (SQLException autoCommitEx) {
-                        System.out.println("Failed to restore auto-commit: " + autoCommitEx.getMessage());
+                        System.out.println("    ✗ FAILED to restore auto-commit");
+                        System.out.println("    Error message: " + autoCommitEx.getMessage());
                         autoCommitEx.printStackTrace();
                     }
                 }
             } else {
+                System.out.println("    ✗ Transaction ID " + transactionId + " not found");
                 JOptionPane.showMessageDialog(this,
                     "Transaction ID " + transactionId + " not found.",
                     "Error",
@@ -527,10 +636,18 @@ public class ApproveTransaction extends JFrame {
             }
             
             // Refresh the list of pending transactions
-            loadPendingTransactions();
+            System.out.println("[11] Refreshing pending transactions list...");
+            try {
+                loadPendingTransactions();
+                System.out.println("    ✓ Pending transactions list refreshed");
+            } catch (Exception e) {
+                System.out.println("    ✗ Error refreshing transaction list: " + e.getMessage());
+                e.printStackTrace();
+            }
+            System.out.println("============ END OF TRANSACTION LOG ============\n");
             
         } catch (SQLException e) {
-            System.out.println("Database error: " + e.getMessage());
+            System.out.println("[!] CRITICAL DATABASE ERROR: " + e.getMessage());
             e.printStackTrace();
             JOptionPane.showMessageDialog(this,
                 "Error approving transaction: " + e.getMessage(),
@@ -541,13 +658,14 @@ public class ApproveTransaction extends JFrame {
             if (conn != null) {
                 try {
                     conn.close();
+                    System.out.println("[12] Database connection closed");
                 } catch (SQLException e) {
+                    System.out.println("[!] Error closing database connection: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
         }
     }
-
     // Reject a specific transaction
     public void rejectTransaction(int transactionId) {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
@@ -744,13 +862,23 @@ public class ApproveTransaction extends JFrame {
 
             // Add action listeners
             approveButton.addActionListener(e -> {
-                parent.approveTransaction(currentTransactionId);
-                fireEditingStopped();
+                try {
+                    parent.approveTransaction(currentTransactionId);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(parent, "Error approving transaction: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    cancelCellEditing();
+                }
             });
 
             rejectButton.addActionListener(e -> {
-                parent.rejectTransaction(currentTransactionId);
-                fireEditingStopped();
+                try {
+                    parent.rejectTransaction(currentTransactionId);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(parent, "Error rejecting transaction: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } finally {
+                    cancelCellEditing();
+                }
             });
 
             // Add hover effects

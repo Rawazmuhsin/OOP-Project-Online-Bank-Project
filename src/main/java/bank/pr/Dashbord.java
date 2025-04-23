@@ -53,8 +53,8 @@ public class Dashbord extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        // Added "Balance" to the menu items
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Transactions", "Transfers", "Cards"};
+        // Updated menu items to include Deposit and Withdraw
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards"};
 
         sidebar.add(titleLabel);
         for (String item : menuItems) {
@@ -172,6 +172,9 @@ public class Dashbord extends JFrame {
         
         // Load and display account balances and account IDs
         loadAccountInfo();
+        
+        // Debug information
+        System.out.println("Dashboard: Set user info - User: " + userName + ", Account ID: " + userId);
     }
     
     private void loadAccountInfo() {
@@ -206,7 +209,7 @@ public class Dashbord extends JFrame {
         }
     }
     
-    // Method to handle button clicks
+    // Updated method to handle button clicks with Deposit and Withdraw options
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
         
@@ -216,20 +219,38 @@ public class Dashbord extends JFrame {
                 loadAccountInfo();
                 break;
             case "Balance":
-                // Go to Balance page - MODIFIED to pass user information
+                // Go to Balance page
                 SwingUtilities.invokeLater(() -> {
                     BalancePage balancePage = new BalancePage(userName, userId);
                     balancePage.setVisible(true);
-                    this.dispose(); // Close the current Dashboard window
+                    this.dispose();
                 });
                 break;
             case "Accounts":
                 // Go to User Profile page
                 SwingUtilities.invokeLater(() -> {
                     UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, userId); // Pass user info to UserProfile
+                    userProfile.setUserInfo(userName, userId);
                     userProfile.setVisible(true);
-                    this.dispose(); // Close the current Dashboard window
+                    this.dispose();
+                });
+                break;
+            case "Deposit":
+                // Go to Deposit page
+                SwingUtilities.invokeLater(() -> {
+                    Deposite depositScreen = new Deposite();
+                    depositScreen.setUserInfo(userName, userId);
+                    depositScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Withdraw":
+                // Go to Withdraw page
+                SwingUtilities.invokeLater(() -> {
+                    Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setUserInfo(userName, userId);
+                    withdrawScreen.setVisible(true);
+                    this.dispose();
                 });
                 break;
             case "Transactions":
@@ -241,10 +262,10 @@ public class Dashbord extends JFrame {
                 });
                 break;
             case "Transfers":
-                // FIXED: Go to transfers page with correct account ID
+                // Go to transfers page with correct account ID
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
-                    transferScreen.setUserInfo(userName, userId); // Pass the user info properly
+                    transferScreen.setUserInfo(userName, userId);
                     transferScreen.setVisible(true);
                     this.dispose();
                 });

@@ -13,7 +13,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
+import java.text.SimpleDateFormat; 
 import java.util.Date;
 
 import javax.swing.BorderFactory;
@@ -31,14 +31,13 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-
-
 public class Deposite extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int accountId = 10; // Default account ID
-    private String userName = "Rawaz.muhsin"; // Default user name
+    private int accountId; // Remove default - will be set from Dashboard
+    private String userName; // Remove default - will be set from Dashboard
+    private JLabel currentAccountLabel; // Added to show current account
 
     public Deposite() {
         setTitle("Deposit Funds -  Kurdish - O - Banking (KOB)");
@@ -98,12 +97,18 @@ public class Deposite extends JFrame {
         content.add(title);
         content.add(Box.createVerticalStrut(5));
         content.add(subtitle);
-        content.add(Box.createVerticalStrut(30));
+        content.add(Box.createVerticalStrut(15));
+        
+        // Add current account ID display
+        currentAccountLabel = new JLabel("Current Account ID: " + accountId);
+        currentAccountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        currentAccountLabel.setForeground(new Color(44, 62, 80));
+        content.add(currentAccountLabel);
+        content.add(Box.createVerticalStrut(15));
 
         // Deposit Method
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
         methodPanel.setOpaque(false);
-
         JRadioButton bankTransfer = new JRadioButton();
         JRadioButton card = new JRadioButton();
         ButtonGroup methodGroup = new ButtonGroup();
@@ -209,6 +214,11 @@ public class Deposite extends JFrame {
     public void setUserInfo(String userName, int accountId) {
         this.userName = userName;
         this.accountId = accountId;
+        // Update the account ID label when user info is set
+        if (currentAccountLabel != null) {
+            currentAccountLabel.setText("Current Account ID: " + accountId);
+        }
+        System.out.println("Deposite: Set user info - User: " + userName + ", Account ID: " + accountId);
     }
 
     private void handleButtonClick(String buttonName) {

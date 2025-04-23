@@ -1,4 +1,5 @@
 package bank.pr;
+
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -6,19 +7,98 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Report extends JFrame {
+    private String userName;
+    private int accountId;
+    private boolean isAdmin = true; // Set to true for admin version
+    
+    // Report data
+    private double totalDeposits = 0;
+    private double totalWithdrawals = 0;
+    private double netBalance = 0;
+    private int pendingTransactions = 0;
+    private List<TransactionData> transactionList = new ArrayList<>();
+    
+    // UI Components
+    private JComboBox<String> reportTypeComboBox;
+    private JComboBox<String> dateRangeComboBox;
+    private JLabel totalDepositsLabel;
+    private JLabel totalWithdrawalsLabel;
+    private JLabel netBalanceLabel;
+    private JLabel pendingTransactionsLabel;
+    
+    // Date range options
+    private final String[] DATE_RANGES = {
+        "Last 7 Days", "Last 30 Days", "Last 90 Days", "Year to Date", "Custom Range"
+    };
+    
+    // Report type options
+    private final String[] REPORT_TYPES = {
+        "Transaction Summary", "Account Activity", "Pending Approvals", "User Activity", "System Overview"
+    };
+    
+    // Class to hold transaction data
+    private class TransactionData {
+        int transactionId;
+        int accountId;
+        String userName;
+        String transactionType;
+        double amount;
+        String date;
+        String status;
+        String description;
+        
+        TransactionData(int transactionId, int accountId, String userName, String transactionType, 
+                       double amount, String date, String status, String description) {
+            this.transactionId = transactionId;
+            this.accountId = accountId;
+            this.userName = userName;
+            this.transactionType = transactionType;
+            this.amount = amount;
+            this.date = date;
+            this.status = status;
+            this.description = description;
+        }
+    }
+    
+    // Constructor
     public Report() {
-        setTitle("KOB Manager Dashboard");
-        setSize(800, 800);
+        this("Admin", 0); // Default constructor with admin values
+    }
+    
+    public Report(String userName, int accountId) {
+        this.userName = userName;
+        this.accountId = accountId;
+        
+        initializeUI();
+        loadReportData(); // Load initial data
+    }
+    
+    private void initializeUI() {
+        setTitle("KOB Admin - Reports Dashboard");
+        setSize(900, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         
@@ -38,10 +118,17 @@ public class Report extends JFrame {
                 g2d.setColor(new Color(26, 32, 44));
                 g2d.fillRect(0, 0, 250, getHeight());
                 
-                // Header: Bank Manager
+                // Header: Bank Admin
                 g2d.setColor(Color.WHITE);
-                g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-                g2d.drawString("KOB Manager", 60, 70);
+                g2d.setFont(new Font("Arial", Font.BOLD, 18));
+                g2d.drawString("KOB Admin Panel", 60, 70);
+                
+                // Admin badge
+                g2d.setColor(new Color(255, 193, 7));
+                g2d.fillRoundRect(60, 80, 60, 20, 10, 10);
+                g2d.setColor(Color.BLACK);
+                g2d.setFont(new Font("Arial", Font.BOLD, 12));
+                g2d.drawString("ADMIN", 70, 94);
                 
                 // Sidebar Links
                 g2d.setColor(new Color(52, 58, 64));
@@ -50,15 +137,18 @@ public class Report extends JFrame {
                 g2d.drawString("Reports", 80, 145);
                 
                 g2d.setFont(new Font("Arial", Font.PLAIN, 14));
+                g2d.setColor(Color.WHITE);
                 g2d.drawString("Dashboard", 60, 220);
                 g2d.drawString("Customer Accounts", 60, 260);
                 g2d.drawString("Transactions", 60, 300);
                 g2d.drawString("Approvals", 60, 340);
                 g2d.drawString("Audit Logs", 60, 380);
+                g2d.drawString("User Management", 60, 420);
+                g2d.drawString("System Settings", 60, 460);
                 
                 // Main Content Area
                 g2d.setColor(Color.WHITE);
-                g2d.fillRoundRect(250, 30, 530, 730, 10, 10); // Adjusted width to fit better
+                g2d.fillRoundRect(270, 30, 610, 730, 10, 10);
             }
         };
         
@@ -72,118 +162,144 @@ public class Report extends JFrame {
                 
                 // Financial Reports Header
                 g2d.setColor(new Color(52, 58, 64));
-                g2d.setFont(new Font("Arial", Font.PLAIN, 24));
-                g2d.drawString("Financial Reports", 70, 40);
+                g2d.setFont(new Font("Arial", Font.BOLD, 24));
+                g2d.drawString("Financial Reports", 20, 40);
                 
                 g2d.setColor(new Color(108, 117, 125));
                 g2d.setFont(new Font("Arial", Font.PLAIN, 14));
-                g2d.drawString("Last generated: Today, 10:15 AM", 70, 80);
                 
-                // Create New Report Section
-                g2d.setColor(new Color(248, 250, 252));
-                g2d.fillRoundRect(70, 130, 450, 30, 5, 5);
+                // Current date for last generated
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                String currentDate = dateFormat.format(new Date());
+                g2d.drawString("Last generated: " + currentDate, 20, 70);
                 
-                g2d.setColor(new Color(52, 58, 64));
-                g2d.drawString("Create New Report", 90, 150);
-                
-                // Date Range
-                g2d.setColor(new Color(52, 58, 64));
-                g2d.drawString("Date Range", 70, 330);
-                
-                // Total Deposits Card
-                g2d.setColor(new Color(204, 229, 255));
-                g2d.fillRoundRect(70, 440, 170, 90, 5, 5);
+                // Admin user info
                 g2d.setColor(new Color(13, 110, 253));
-                g2d.setFont(new Font("Arial", Font.PLAIN, 14));
-                g2d.drawString("Total Deposits", 90, 465);
-                g2d.setFont(new Font("Arial", Font.PLAIN, 24));
-                g2d.drawString("$42,500", 90, 495);
+                g2d.drawString("Generated by: " + userName + " (Admin)", 20, 95);
+                
+                // Section dividers
+                g2d.setColor(new Color(222, 226, 230));
+                g2d.fillRect(20, 110, 570, 2);
+                g2d.fillRect(20, 210, 570, 2);
+                g2d.fillRect(20, 360, 570, 2);
             }
         };
         contentPanel.setLayout(null);
         contentPanel.setOpaque(false);
-        contentPanel.setBounds(250, 30, 530, 730);
+        contentPanel.setBounds(270, 30, 610, 730);
         
-        // Report Template Dropdown (simulated)
-        JPanel templatePanel = new JPanel();
-        templatePanel.setBackground(new Color(248, 250, 252));
-        templatePanel.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
-        templatePanel.setBounds(70, 220, 390, 30);
-        JLabel templateLabel = new JLabel("Select Report Template");
-        templateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        templateLabel.setForeground(new Color(52, 58, 64)); // #343a40
-        templatePanel.add(templateLabel);
-        contentPanel.add(templatePanel);
+        // Report Type Selector
+        JLabel reportTypeLabel = new JLabel("Report Type:");
+        reportTypeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        reportTypeLabel.setBounds(20, 130, 150, 20);
+        contentPanel.add(reportTypeLabel);
         
-        // Customize Button
-        JButton customizeButton = new JButton("Customize");
-        customizeButton.setBounds(470, 220, 150, 30);
-        customizeButton.setBackground(new Color(13, 110, 253));
-        customizeButton.setForeground(Color.WHITE);
-        customizeButton.setBorderPainted(false);
-        customizeButton.setFocusPainted(false);
-        customizeButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        contentPanel.add(customizeButton);
+        reportTypeComboBox = new JComboBox<>(REPORT_TYPES);
+        reportTypeComboBox.setBounds(20, 155, 250, 30);
+        reportTypeComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                loadReportData(); // Reload data when report type changes
+            }
+        });
+        contentPanel.add(reportTypeComboBox);
         
-        // Date Input Fields (simulated)
-        JPanel startDatePanel = new JPanel();
-        startDatePanel.setBackground(new Color(248, 250, 252));
-        startDatePanel.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
-        startDatePanel.setBounds(70, 350, 170, 30);
-        JLabel startDateLabel = new JLabel("01 Jan 2025");
-        startDateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        startDateLabel.setForeground(new Color(52, 58, 64));
-        startDatePanel.add(startDateLabel);
-        contentPanel.add(startDatePanel);
+        // Date Range Selector
+        JLabel dateRangeLabel = new JLabel("Date Range:");
+        dateRangeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        dateRangeLabel.setBounds(300, 130, 150, 20);
+        contentPanel.add(dateRangeLabel);
         
-        JLabel toLabel = new JLabel("to");
-        toLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        toLabel.setForeground(new Color(52, 58, 64));
-        toLabel.setBounds(250, 355, 20, 20);
-        contentPanel.add(toLabel);
+        dateRangeComboBox = new JComboBox<>(DATE_RANGES);
+        dateRangeComboBox.setBounds(300, 155, 250, 30);
+        dateRangeComboBox.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                loadReportData(); // Reload data when date range changes
+            }
+        });
+        contentPanel.add(dateRangeComboBox);
         
-        JPanel endDatePanel = new JPanel();
-        endDatePanel.setBackground(new Color(248, 250, 252));
-        endDatePanel.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
-        endDatePanel.setBounds(280, 350, 170, 30);
-        JLabel endDateLabel = new JLabel("31 Jan 2025");
-        endDateLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        endDateLabel.setForeground(new Color(52, 58, 64));
-        endDatePanel.add(endDateLabel);
-        contentPanel.add(endDatePanel);
+        // Summary Cards Section
+        JLabel summaryLabel = new JLabel("Financial Summary");
+        summaryLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        summaryLabel.setBounds(20, 230, 200, 25);
+        contentPanel.add(summaryLabel);
         
-        // Action Buttons
+        // Card 1: Total Deposits
+        JPanel depositCard = createSummaryCard("Total Deposits", "$0.00", new Color(209, 231, 221), new Color(25, 135, 84));
+        depositCard.setBounds(20, 265, 135, 80);
+        contentPanel.add(depositCard);
+        totalDepositsLabel = (JLabel) depositCard.getComponent(1);
+        
+        // Card 2: Total Withdrawals
+        JPanel withdrawalCard = createSummaryCard("Total Withdrawals", "$0.00", new Color(248, 215, 218), new Color(220, 53, 69));
+        withdrawalCard.setBounds(165, 265, 135, 80);
+        contentPanel.add(withdrawalCard);
+        totalWithdrawalsLabel = (JLabel) withdrawalCard.getComponent(1);
+        
+        // Card 3: Net Balance
+        JPanel balanceCard = createSummaryCard("Net Balance", "$0.00", new Color(207, 226, 255), new Color(13, 110, 253));
+        balanceCard.setBounds(310, 265, 135, 80);
+        contentPanel.add(balanceCard);
+        netBalanceLabel = (JLabel) balanceCard.getComponent(1);
+        
+        // Card 4: Pending Transactions
+        JPanel pendingCard = createSummaryCard("Pending", "0", new Color(255, 243, 205), new Color(255, 193, 7));
+        pendingCard.setBounds(455, 265, 135, 80);
+        contentPanel.add(pendingCard);
+        pendingTransactionsLabel = (JLabel) pendingCard.getComponent(1);
+        
+        // Report Actions Section
+        JLabel actionsLabel = new JLabel("Report Actions");
+        actionsLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        actionsLabel.setBounds(20, 380, 200, 25);
+        contentPanel.add(actionsLabel);
+        
+        // Generate Report Button
         JButton generateReportButton = new JButton("Generate Report");
-        generateReportButton.setBounds(220, 680, 150, 30);
+        generateReportButton.setBounds(20, 415, 150, 35);
         generateReportButton.setBackground(new Color(13, 110, 253));
         generateReportButton.setForeground(Color.WHITE);
         generateReportButton.setBorderPainted(false);
         generateReportButton.setFocusPainted(false);
-        generateReportButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        generateReportButton.setFont(new Font("Arial", Font.BOLD, 14));
+        generateReportButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                generateReport();
+            }
+        });
         contentPanel.add(generateReportButton);
         
-        JButton exportOptionsButton = new JButton("Export Options");
-        exportOptionsButton.setBounds(380, 680, 150, 30);
-        exportOptionsButton.setBackground(new Color(248, 250, 252));
-        exportOptionsButton.setForeground(new Color(52, 58, 64));
-        exportOptionsButton.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
-        exportOptionsButton.setFocusPainted(false);
-        exportOptionsButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        contentPanel.add(exportOptionsButton);
+        // Export CSV Button (instead of PDF that requires external libraries)
+        JButton exportCsvButton = new JButton("Export as CSV");
+        exportCsvButton.setBounds(180, 415, 150, 35);
+        exportCsvButton.setBackground(new Color(25, 135, 84));
+        exportCsvButton.setForeground(Color.WHITE);
+        exportCsvButton.setBorderPainted(false);
+        exportCsvButton.setFocusPainted(false);
+        exportCsvButton.setFont(new Font("Arial", Font.BOLD, 14));
+        exportCsvButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                exportReportToCsv();
+            }
+        });
+        contentPanel.add(exportCsvButton);
         
-        // Add the back to dashboard button
+        // Back to Dashboard button
         JButton backToDashboardButton = new JButton("Back to Dashboard");
-        backToDashboardButton.setBounds(70, 680, 140, 30);
-        backToDashboardButton.setBackground(new Color(248, 250, 252));
-        backToDashboardButton.setForeground(new Color(52, 58, 64));
-        backToDashboardButton.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239)));
+        backToDashboardButton.setBounds(20, 680, 180, 35);
+        backToDashboardButton.setBackground(new Color(108, 117, 125));
+        backToDashboardButton.setForeground(Color.WHITE);
+        backToDashboardButton.setBorderPainted(false);
         backToDashboardButton.setFocusPainted(false);
-        backToDashboardButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        backToDashboardButton.setFont(new Font("Arial", Font.BOLD, 14));
         backToDashboardButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                dispose();
-                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                navigateToDashboard();
             }
         });
         contentPanel.add(backToDashboardButton);
@@ -198,12 +314,315 @@ public class Report extends JFrame {
     }
     
     /**
+     * Creates a summary card panel with title and value
+     */
+    private JPanel createSummaryCard(String title, String value, Color bgColor, Color textColor) {
+        JPanel card = new JPanel();
+        card.setLayout(null);
+        card.setBackground(bgColor);
+        card.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        titleLabel.setForeground(textColor);
+        titleLabel.setBounds(10, 5, 115, 20);
+        
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        valueLabel.setForeground(textColor);
+        valueLabel.setBounds(10, 30, 115, 25);
+        
+        card.add(titleLabel);
+        card.add(valueLabel);
+        
+        return card;
+    }
+    
+    /**
+     * Set user information and update UI elements
+     */
+    public void setUserInfo(String userName, int accountId) {
+        this.userName = userName;
+        this.accountId = accountId;
+        loadReportData();
+        
+        System.out.println("Report: Set user info - User: " + userName + ", Account ID: " + accountId);
+        repaint(); // Refresh the UI to display the new user info
+    }
+    
+    /**
+     * Fetch and load report data based on current selection
+     */
+    private void loadReportData() {
+        // If the combo box is not initialized yet, return
+        if (reportTypeComboBox == null || dateRangeComboBox == null) {
+            return;
+        }
+        
+        String reportType = (String) reportTypeComboBox.getSelectedItem();
+        String dateRange = (String) dateRangeComboBox.getSelectedItem();
+        
+        // Reset values
+        totalDeposits = 0;
+        totalWithdrawals = 0;
+        netBalance = 0;
+        pendingTransactions = 0;
+        transactionList.clear();
+        
+        System.out.println("Loading report data: " + reportType + ", " + dateRange);
+        
+        // Get date range in SQL format
+        String dateFilter = getDateFilterSql(dateRange);
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query;
+            PreparedStatement stmt;
+            ResultSet rs;
+            
+            // Load summary data - modified for admin to see all accounts
+            if (isAdmin) {
+                // Total deposits
+                query = "SELECT SUM(amount) as total FROM transactions WHERE transaction_type = 'DEPOSIT' " + dateFilter;
+                stmt = conn.prepareStatement(query);
+                rs = stmt.executeQuery();
+                if (rs.next() && rs.getObject("total") != null) {
+                    totalDeposits = rs.getDouble("total");
+                }
+                
+                // Total withdrawals
+                query = "SELECT SUM(amount) as total FROM transactions WHERE transaction_type = 'Withdrawal' " + dateFilter;
+                stmt = conn.prepareStatement(query);
+                rs = stmt.executeQuery();
+                if (rs.next() && rs.getObject("total") != null) {
+                    totalWithdrawals = rs.getDouble("total");
+                }
+                
+                // Pending transactions
+                query = "SELECT COUNT(*) as count FROM transactions WHERE status = 'PENDING' " + dateFilter;
+                stmt = conn.prepareStatement(query);
+                rs = stmt.executeQuery();
+                if (rs.next()) {
+                    pendingTransactions = rs.getInt("count");
+                }
+                
+                // Load transaction list
+                query = "SELECT t.transaction_id, t.account_id, a.username, t.transaction_type, " +
+                        "t.amount, t.transaction_date, t.status, t.description " +
+                        "FROM transactions t " +
+                        "JOIN accounts a ON t.account_id = a.account_id " +
+                        "WHERE 1=1 " + dateFilter + " " +
+                        "ORDER BY t.transaction_date DESC LIMIT 100";
+                
+                stmt = conn.prepareStatement(query);
+                rs = stmt.executeQuery();
+                
+                while (rs.next()) {
+                    transactionList.add(new TransactionData(
+                        rs.getInt("transaction_id"),
+                        rs.getInt("account_id"),
+                        rs.getString("username"),
+                        rs.getString("transaction_type"),
+                        rs.getDouble("amount"),
+                        rs.getString("transaction_date"),
+                        rs.getString("status"),
+                        rs.getString("description")
+                    ));
+                }
+            } else {
+                // For non-admin users, only show their transactions
+                // Total deposits
+                query = "SELECT SUM(amount) as total FROM transactions WHERE transaction_type = 'DEPOSIT' AND account_id = ? " + dateFilter;
+                stmt = conn.prepareStatement(query);
+                stmt.setInt(1, accountId);
+                rs = stmt.executeQuery();
+                if (rs.next() && rs.getObject("total") != null) {
+                    totalDeposits = rs.getDouble("total");
+                }
+                
+                // Similar queries for other data points would go here...
+            }
+            
+            // Calculate net balance
+            netBalance = totalDeposits - totalWithdrawals;
+            
+            // Update UI
+            updateSummaryCards();
+            
+        } catch (SQLException ex) {
+            System.out.println("Error loading report data: " + ex.getMessage());
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Error loading report data: " + ex.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Update the summary cards with the loaded data
+     */
+    private void updateSummaryCards() {
+        if (totalDepositsLabel != null) {
+            totalDepositsLabel.setText(String.format("$%.2f", totalDeposits));
+        }
+        if (totalWithdrawalsLabel != null) {
+            totalWithdrawalsLabel.setText(String.format("$%.2f", totalWithdrawals));
+        }
+        if (netBalanceLabel != null) {
+            netBalanceLabel.setText(String.format("$%.2f", netBalance));
+        }
+        if (pendingTransactionsLabel != null) {
+            pendingTransactionsLabel.setText(String.format("%d", pendingTransactions));
+        }
+    }
+    
+    /**
+     * Convert date range selection to SQL WHERE clause
+     */
+    private String getDateFilterSql(String dateRange) {
+        if (dateRange == null) {
+            return "";
+        }
+        
+        switch (dateRange) {
+            case "Last 7 Days":
+                return "AND transaction_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+            case "Last 30 Days":
+                return "AND transaction_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+            case "Last 90 Days":
+                return "AND transaction_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)";
+            case "Year to Date":
+                return "AND YEAR(transaction_date) = YEAR(CURRENT_DATE())";
+            case "Custom Range":
+                // In a real app, you'd show a date picker here
+                return "";
+            default:
+                return "";
+        }
+    }
+    
+    /**
+     * Generate a report based on selected criteria
+     */
+    private void generateReport() {
+        String reportType = (String) reportTypeComboBox.getSelectedItem();
+        String dateRange = (String) dateRangeComboBox.getSelectedItem();
+        
+        // Refresh data
+        loadReportData();
+        
+        JOptionPane.showMessageDialog(this,
+            "Report Generated Successfully\n\n" +
+            "Report Type: " + reportType + "\n" +
+            "Date Range: " + dateRange + "\n\n" +
+            "Summary:\n" +
+            "- Total Deposits: $" + String.format("%.2f", totalDeposits) + "\n" +
+            "- Total Withdrawals: $" + String.format("%.2f", totalWithdrawals) + "\n" +
+            "- Net Balance: $" + String.format("%.2f", netBalance) + "\n" +
+            "- Pending Transactions: " + pendingTransactions + "\n\n" +
+            "Total Transactions: " + transactionList.size(),
+            "Report Generation",
+            JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Export report data to CSV (simpler alternative to PDF that requires no external libraries)
+     */
+    private void exportReportToCsv() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save CSV Report");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("CSV files (*.csv)", "csv"));
+        
+        // Set default file name
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        String defaultFileName = "KOB_Report_" + dateFormat.format(new Date()) + ".csv";
+        fileChooser.setSelectedFile(new File(defaultFileName));
+        
+        int userSelection = fileChooser.showSaveDialog(this);
+        
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            
+            // Add .csv extension if missing
+            if (!fileToSave.getAbsolutePath().endsWith(".csv")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
+            }
+            
+            try (FileWriter writer = new FileWriter(fileToSave)) {
+                // Write report header
+                String reportType = (String) reportTypeComboBox.getSelectedItem();
+                String dateRange = (String) dateRangeComboBox.getSelectedItem();
+                
+                writer.write("Kurdish - O - Banking (KOB) Report\n");
+                writer.write(reportType + " - " + dateRange + "\n");
+                writer.write("Generated on: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + "\n");
+                writer.write("Generated by: " + userName + " (Admin)\n\n");
+                
+                // Write financial summary
+                writer.write("FINANCIAL SUMMARY\n");
+                writer.write("Total Deposits,$" + String.format("%.2f", totalDeposits) + "\n");
+                writer.write("Total Withdrawals,$" + String.format("%.2f", totalWithdrawals) + "\n");
+                writer.write("Net Balance,$" + String.format("%.2f", netBalance) + "\n");
+                writer.write("Pending Transactions," + pendingTransactions + "\n\n");
+                
+                // Write transaction details
+                writer.write("TRANSACTION DETAILS\n");
+                writer.write("Transaction ID,Account ID,User,Type,Amount,Date,Status,Description\n");
+                
+                for (TransactionData transaction : transactionList) {
+                    writer.write(String.format("%d,%d,%s,%s,%.2f,%s,%s,%s\n",
+                        transaction.transactionId,
+                        transaction.accountId,
+                        transaction.userName,
+                        transaction.transactionType,
+                        transaction.amount,
+                        transaction.date,
+                        transaction.status,
+                        transaction.description != null ? transaction.description.replace(",", " ") : ""
+                    ));
+                }
+                
+                JOptionPane.showMessageDialog(this,
+                    "Report exported successfully to:\n" + fileToSave.getAbsolutePath(),
+                    "Export Successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                    "Error exporting report: " + ex.getMessage(),
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    /**
+     * Navigate back to the appropriate dashboard based on user role
+     */
+    private void navigateToDashboard() {
+        dispose();
+        SwingUtilities.invokeLater(() -> {
+            if (isAdmin) {
+                // Navigate to ManagerDashboard for admin users
+                ManagerDashboard managerDashboard = new ManagerDashboard();
+                managerDashboard.setVisible(true);
+            } else {
+                // Navigate to normal user dashboard for non-admin users
+                Dashbord dashboard = new Dashbord();
+                dashboard.setUserInfo(userName, accountId);
+                dashboard.setVisible(true);
+            }
+        });
+    }
+    
+    /**
      * Adds click listeners to the sidebar menu items for navigation
      */
     private void addSidebarNavigation(JPanel mainPanel) {
         // Create invisible buttons over the sidebar text for navigation
-        String[] menuItems = {"Dashboard", "Customer Accounts", "Transactions", "Approvals", "Audit Logs"};
-        int[] yPositions = {220, 260, 300, 340, 380};
+        String[] menuItems = {"Dashboard", "Customer Accounts", "Transactions", "Approvals", "Audit Logs", "User Management", "System Settings"};
+        int[] yPositions = {220, 260, 300, 340, 380, 420, 460};
         
         for (int i = 0; i < menuItems.length; i++) {
             JButton navButton = new JButton();
@@ -225,44 +644,62 @@ public class Report extends JFrame {
     }
     
     /**
-     * Helper method to navigate between screens
+     * Helper method to navigate between admin screens
      */
     private void navigateToScreen(String screenName) {
         dispose(); // Close the current window
         
         switch (screenName) {
             case "Dashboard":
-                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                SwingUtilities.invokeLater(() -> {
+                    if (isAdmin) {
+                        new ManagerDashboard().setVisible(true);
+                    } else {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, accountId);
+                        dashboard.setVisible(true);
+                    }
+                });
                 break;
             case "Customer Accounts":
-                SwingUtilities.invokeLater(() -> new CustomerAccounts().setVisible(true));
+                SwingUtilities.invokeLater(() -> {
+                    new CustomerAccounts().setVisible(true);
+                });
                 break;
             case "Transactions":
-                SwingUtilities.invokeLater(() -> new ManageTransaction().setVisible(true));
+                SwingUtilities.invokeLater(() -> {
+                    new ManageTransaction().setVisible(true);
+                });
                 break;
             case "Approvals":
-                // For now, just show a message and return to dashboard
-                JOptionPane.showMessageDialog(null, 
-                    "Approval Queue screen is under development.", 
-                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
-                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                SwingUtilities.invokeLater(() -> {
+                    // For now, just show a message
+                    JOptionPane.showMessageDialog(null, 
+                        "Approval Queue screen is under development.", 
+                        "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                    navigateToDashboard();
+                });
                 break;
             case "Audit Logs":
-                // For now, just show a message and return to dashboard
-                JOptionPane.showMessageDialog(null, 
-                    "Audit Logs screen is under development.", 
-                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
-                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+            case "User Management":
+            case "System Settings":
+                SwingUtilities.invokeLater(() -> {
+                    // For now, just show a message
+                    JOptionPane.showMessageDialog(null, 
+                        screenName + " screen is under development.", 
+                        "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                    navigateToDashboard();
+                });
                 break;
             default:
-                SwingUtilities.invokeLater(() -> new ManagerDashboard().setVisible(true));
+                navigateToDashboard();
         }
     }
     
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Report dashboard = new Report();
-            dashboard.setVisible(true);
+            Report report = new Report("Admin", 0);
+            report.setVisible(true);
         });
     }
 }

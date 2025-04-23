@@ -35,8 +35,10 @@ public class Withdraw extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int accountId = 10; // Default account ID
-    private String userName = "Rawaz.muhsin"; // Default user name
+    private int accountId; // Remove default - will be set from Dashboard
+    private String userName; // Remove default - will be set from Dashboard
+    private JLabel currentAccountLabel; // Added to show current account
+    private JLabel currentBalanceLabel; // Added to show current balance
 
     public Withdraw() {
         setTitle("Withdraw Funds -  Kurdish - O - Banking (KOB)");
@@ -96,7 +98,19 @@ public class Withdraw extends JFrame {
         content.add(title);
         content.add(Box.createVerticalStrut(5));
         content.add(subtitle);
-        content.add(Box.createVerticalStrut(30));
+        content.add(Box.createVerticalStrut(15));
+        
+        // Add current account ID and balance display
+        currentAccountLabel = new JLabel("Current Account ID: " + accountId);
+        currentAccountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        currentAccountLabel.setForeground(new Color(44, 62, 80));
+        content.add(currentAccountLabel);
+        
+        currentBalanceLabel = new JLabel("Available Balance: Loading...");
+        currentBalanceLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        currentBalanceLabel.setForeground(new Color(44, 62, 80));
+        content.add(currentBalanceLabel);
+        content.add(Box.createVerticalStrut(15));
 
         // Withdraw Method
         JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
@@ -211,6 +225,52 @@ public class Withdraw extends JFrame {
     public void setUserInfo(String userName, int accountId) {
         this.userName = userName;
         this.accountId = accountId;
+        
+        // Update the account ID label when user info is set
+        if (currentAccountLabel != null) {
+            currentAccountLabel.setText("Current Account ID: " + accountId);
+        }
+        
+        // Load and display current balance
+        loadCurrentBalance();
+        
+        System.out.println("Withdraw: Set user info - User: " + userName + ", Account ID: " + accountId);
+    }
+    
+    // Method to load current balance
+    private void loadCurrentBalance() {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            String query = "SELECT balance FROM accounts WHERE account_id = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, accountId);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                double balance = rs.getDouble("balance");
+                currentBalanceLabel.setText(String.format("Available Balance: $%.2f", balance));
+            } else {
+                currentBalanceLabel.setText("Available Balance: Not found");
+            }
+            
+            rs.close();
+            stmt.close();
+            
+        } catch (SQLException ex) {
+            currentBalanceLabel.setText("Available Balance: Error loading");
+            System.out.println("Error loading balance: " + ex.getMessage());
+            ex.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
     
     // Method to handle button clicks
@@ -308,6 +368,7 @@ public class Withdraw extends JFrame {
         }
     }
     
+    // Method to save transaction
     private boolean saveTransaction(double amount, String description) {
         Connection conn = null;
         try {
@@ -347,7 +408,7 @@ public class Withdraw extends JFrame {
 
             PreparedStatement pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, accountId);
-            pstmt.setString(2, "Withdrawal");  // Changed from "WITHDRAW"
+            pstmt.setString(2, "Withdrawal");
             pstmt.setDouble(3, amount);
             pstmt.setString(4, currentDate);
             pstmt.setString(5, description);
@@ -377,4 +438,4 @@ public class Withdraw extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Withdraw::new);
     }
-} 
+}

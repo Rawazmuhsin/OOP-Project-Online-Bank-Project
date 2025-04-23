@@ -8,16 +8,21 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -26,6 +31,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -277,13 +283,13 @@ public class ManageTransaction extends JFrame {
         nextButton.setFocusPainted(false);
         paginationPanel.add(nextButton);
 
-        JButton exportButton = new JButton("Export CSV");
+        JButton exportButton = new JButton("Export PDF");
         exportButton.setFont(new Font("Arial", Font.PLAIN, 14));
         exportButton.setBackground(new Color(248, 250, 252)); // #f8fafc
         exportButton.setForeground(new Color(52, 58, 64)); // #343a40
         exportButton.setBorder(BorderFactory.createLineBorder(new Color(235, 237, 239))); // #ebedef
         exportButton.setFocusPainted(false);
-        exportButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Exporting to CSV..."));
+        exportButton.addActionListener(e -> exportToPDF());
         paginationPanel.add(exportButton);
         
         // Add refresh button
@@ -305,6 +311,191 @@ public class ManageTransaction extends JFrame {
         contentPanel.add(paginationPanel);
         mainPanel.add(contentPanel, BorderLayout.NORTH);
         return mainPanel;
+    }
+    
+    /**
+     * Export the current table data to a PDF file
+     * Requires iText library: com.itextpdf (add to your dependencies)
+     */
+    private void exportToPDF() {
+        // Check if there's data to export
+        if (tableModel.getRowCount() == 0 || 
+            (tableModel.getRowCount() == 1 && tableModel.getValueAt(0, 0).toString().contains("No transactions"))) {
+            JOptionPane.showMessageDialog(this,
+                "No data available to export.",
+                "Export Error",
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Create file chooser dialog
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save PDF File");
+        
+        // Set default filename with timestamp
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String defaultFileName = "transactions_" + dateFormat.format(new Date()) + ".pdf";
+        fileChooser.setSelectedFile(new File(defaultFileName));
+        
+        // Set file filter to only show PDF files
+        FileNameExtensionFilter pdfFilter = new FileNameExtensionFilter("PDF Files (*.pdf)", "pdf");
+        fileChooser.setFileFilter(pdfFilter);
+        
+        // Show save dialog
+        int userSelection = fileChooser.showSaveDialog(this);
+        
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            
+            // Add .pdf extension if not present
+            if (!fileToSave.getName().toLowerCase().endsWith(".pdf")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".pdf");
+            }
+            
+            // Check if file already exists and confirm overwrite
+            if (fileToSave.exists()) {
+                int response = JOptionPane.showConfirmDialog(this,
+                    "The file " + fileToSave.getName() + " already exists. Do you want to overwrite it?",
+                    "Confirm Overwrite",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+                
+                if (response != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+            
+            try {
+                // Create PDF document
+                com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+                com.itextpdf.text.pdf.PdfWriter.getInstance(document, new FileOutputStream(fileToSave));
+                document.open();
+                
+                // Add title
+                com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 16, com.itextpdf.text.Font.BOLD);
+                com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("Transaction Report", titleFont);
+                title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                title.setSpacingAfter(10);
+                document.add(title);
+                
+                // Add timestamp
+                com.itextpdf.text.Font smallFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 8);
+                com.itextpdf.text.Paragraph timestamp = new com.itextpdf.text.Paragraph(
+                    "Report generated on: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()), 
+                    smallFont);
+                timestamp.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+                timestamp.setSpacingAfter(20);
+                document.add(timestamp);
+                
+                // Create table
+                com.itextpdf.text.pdf.PdfPTable pdfTable = new com.itextpdf.text.pdf.PdfPTable(tableModel.getColumnCount() - 1); // Skip ACTIONS column
+                pdfTable.setWidthPercentage(100);
+                
+                // Set column widths (percentages)
+                float[] columnWidths = {15f, 20f, 15f, 15f, 15f, 20f};
+                pdfTable.setWidths(columnWidths);
+                
+                // Define fonts for headers and data
+                com.itextpdf.text.Font headerFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10, com.itextpdf.text.Font.BOLD);
+                com.itextpdf.text.Font dataFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 9);
+                
+                // Add table headers
+                for (int i = 0; i < tableModel.getColumnCount() - 1; i++) { // Skip ACTIONS column
+                    com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(
+                        new com.itextpdf.text.Phrase(tableModel.getColumnName(i), headerFont));
+                    cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(248, 250, 252));
+                    cell.setPadding(5);
+                    pdfTable.addCell(cell);
+                }
+                
+                // Add data rows
+                for (int row = 0; row < tableModel.getRowCount(); row++) {
+                    if (tableModel.getValueAt(row, 0).toString().contains("No transactions")) {
+                        continue; // Skip "No transactions found" row
+                    }
+                    
+                    for (int col = 0; col < tableModel.getColumnCount() - 1; col++) { // Skip ACTIONS column
+                        // Get cell value
+                        Object value = tableModel.getValueAt(row, col);
+                        String cellValue = (value == null) ? "" : value.toString();
+                        
+                        com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(
+                            new com.itextpdf.text.Phrase(cellValue, dataFont));
+                        
+                        // Align different columns as needed
+                        if (col == 4) { // AMOUNT column
+                            cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+                            
+                            // Set color based on positive/negative values
+                            if (cellValue.startsWith("+")) {
+                                cell.setPhrase(new com.itextpdf.text.Phrase(cellValue, 
+                                    new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 9, 
+                                        com.itextpdf.text.Font.NORMAL, new com.itextpdf.text.BaseColor(0, 128, 0))));
+                            } else if (cellValue.startsWith("-")) {
+                                cell.setPhrase(new com.itextpdf.text.Phrase(cellValue, 
+                                    new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 9, 
+                                        com.itextpdf.text.Font.NORMAL, new com.itextpdf.text.BaseColor(220, 53, 69))));
+                            }
+                        } else if (col == 2 || col == 5) { // TYPE and STATUS columns
+                            cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                            
+                            // Set background colors for transaction type
+                            if (col == 2) {
+                                String type = cellValue.toLowerCase();
+                                if (type.contains("deposit")) {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(230, 255, 250));
+                                } else if (type.contains("withdrawal")) {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(255, 236, 236));
+                                } else {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(255, 250, 230));
+                                }
+                            }
+                            
+                            // Set background colors for status
+                            if (col == 5) {
+                                String status = cellValue.toLowerCase();
+                                if (status.contains("approved")) {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(230, 255, 250));
+                                } else if (status.contains("pending")) {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(255, 250, 230));
+                                } else if (status.contains("rejected") || status.contains("failed")) {
+                                    cell.setBackgroundColor(new com.itextpdf.text.BaseColor(255, 236, 236));
+                                }
+                            }
+                        }
+                        
+                        cell.setPadding(5);
+                        pdfTable.addCell(cell);
+                    }
+                }
+                
+                document.add(pdfTable);
+                
+                // Add footer
+                document.add(new com.itextpdf.text.Paragraph("\n"));
+                com.itextpdf.text.Paragraph footer = new com.itextpdf.text.Paragraph(
+                    "This is an official report from KOB Manager. For any inquiries, please contact the bank.", 
+                    smallFont);
+                footer.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                document.add(footer);
+                
+                // Close document
+                document.close();
+                
+                JOptionPane.showMessageDialog(this,
+                    "Transaction data successfully exported to PDF:\n" + fileToSave.getAbsolutePath(),
+                    "Export Successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error exporting data to PDF: " + e.getMessage(),
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
     }
     
     /**
