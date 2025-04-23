@@ -35,10 +35,9 @@ public class Deposite extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int accountId; // Remove default - will be set from Dashboard
-    private String userName; // Remove default - will be set from Dashboard
-    private JLabel currentAccountLabel; // Added to show current account
-
+    private int accountId; 
+    private String userName; 
+    private JLabel currentAccountLabel; 
     public Deposite() {
         setTitle("Deposit Funds -  Kurdish - O - Banking (KOB)");
         setSize(900, 600);

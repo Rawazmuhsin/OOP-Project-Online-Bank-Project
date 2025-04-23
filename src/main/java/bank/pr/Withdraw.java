@@ -35,11 +35,10 @@ public class Withdraw extends JFrame {
     private JTextField amountField;
     private JTextArea descArea;
     private JPanel quickButtons;
-    private int accountId; // Remove default - will be set from Dashboard
-    private String userName; // Remove default - will be set from Dashboard
-    private JLabel currentAccountLabel; // Added to show current account
-    private JLabel currentBalanceLabel; // Added to show current balance
-
+    private int accountId; 
+    private String userName;
+    private JLabel currentAccountLabel;
+    private JLabel currentBalanceLabel; 
     public Withdraw() {
         setTitle("Withdraw Funds -  Kurdish - O - Banking (KOB)");
         setSize(900, 600);
