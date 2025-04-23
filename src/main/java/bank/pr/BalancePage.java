@@ -8,11 +8,14 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -21,12 +24,24 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfWriter;
 
 public class BalancePage extends JFrame {
     
@@ -152,6 +167,29 @@ public class BalancePage extends JFrame {
             actionBtn.setFocusPainted(false);
             actionBtn.setFont(new Font("SansSerif", Font.PLAIN, 13));
             actionBtn.setPreferredSize(new Dimension(100, 35));
+            
+            // Add action listeners for specific buttons
+            if (label.equals("History")) {
+                actionBtn.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        // Navigate to Transaction class
+                        SwingUtilities.invokeLater(() -> {
+                            Transaction transaction = new Transaction(userId, userName);
+                            transaction.setVisible(true);
+                            dispose(); // Close current window
+                        });
+                    }
+                });
+            } else if (label.equals("Export")) {
+                actionBtn.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        exportToPDF();
+                    }
+                });
+            }
+            
             actionsPanel.add(actionBtn);
         }
         content.add(actionsPanel);
@@ -287,6 +325,191 @@ public class BalancePage extends JFrame {
             userId = selectedAccount.getAccountId();
             userName = selectedAccount.getUsername();
         }
+    }
+    
+    // Method to export balance and transaction history to PDF
+    private void exportToPDF() {
+        if (accountComboBox.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, 
+                    "Please select an account first", 
+                    "Export Error", 
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Show file chooser dialog
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save PDF Report");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("PDF Files", "pdf"));
+        
+        if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+            if (!filePath.toLowerCase().endsWith(".pdf")) {
+                filePath += ".pdf";
+            }
+            
+            try {
+                // Create PDF document
+                Document document = new Document();
+                PdfWriter.getInstance(document, new FileOutputStream(filePath));
+                document.open();
+                
+                // Add title
+                com.itextpdf.text.Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+                Paragraph title = new Paragraph("Account Statement", titleFont);
+                title.setAlignment(Element.ALIGN_CENTER);
+                document.add(title);
+                document.add(new Paragraph(" ")); // Add space
+                
+                // Add account info
+                Account selectedAccount = (Account) accountComboBox.getSelectedItem();
+                com.itextpdf.text.Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12);
+                document.add(new Paragraph("Account Information:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+                document.add(new Paragraph("Account Holder: " + selectedAccount.getUsername(), normalFont));
+                document.add(new Paragraph("Account Type: " + selectedAccount.getAccountType(), normalFont));
+                document.add(new Paragraph("Account Number: " + selectedAccount.getAccountId(), normalFont));
+                document.add(new Paragraph("Current Balance: $" + String.format("%.2f", selectedAccount.getBalance()), normalFont));
+                document.add(new Paragraph("Statement Date: " + new SimpleDateFormat("MMMM dd, yyyy").format(new Date()), normalFont));
+                document.add(new Paragraph(" ")); // Add space
+                
+                // Add transaction history
+                document.add(new Paragraph("Recent Transactions:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+                document.add(new Paragraph(" ")); // Add space
+                
+                // Create transaction table
+                PdfPTable table = new PdfPTable(5); // 5 columns
+                table.setWidthPercentage(100);
+                
+                // Set column widths
+                float[] columnWidths = {2f, 4f, 2f, 2f, 2f};
+                table.setWidths(columnWidths);
+                
+                // Add table headers
+                String[] headers = {"Date", "Description", "Type", "Amount", "Balance"};
+                for (String header : headers) {
+                    PdfPCell cell = new PdfPCell(new Phrase(header, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+                    cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                    cell.setPadding(5);
+                    table.addCell(cell);
+                }
+                
+                // Add transaction data from database
+                List<TransactionItem> transactions = fetchTransactionHistory();
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                
+                for (TransactionItem transaction : transactions) {
+                    table.addCell(dateFormat.format(transaction.getDate()));
+                    table.addCell(transaction.getDescription());
+                    table.addCell(transaction.getCategory());
+                    table.addCell(String.format("$%.2f", transaction.getAmount()));
+                    table.addCell(String.format("$%.2f", transaction.getBalance()));
+                }
+                
+                document.add(table);
+                
+                // Add footer
+                document.add(new Paragraph(" ")); // Add space
+                Paragraph footer = new Paragraph("Kurdish - O - Banking (KOB)", normalFont);
+                footer.setAlignment(Element.ALIGN_CENTER);
+                document.add(footer);
+                
+                document.close();
+                
+                JOptionPane.showMessageDialog(this, 
+                        "PDF report has been saved successfully!", 
+                        "Export Successful", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (DocumentException | java.io.IOException e) {
+                JOptionPane.showMessageDialog(this, 
+                        "Error creating PDF: " + e.getMessage(), 
+                        "Export Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    // Class to store transaction data for PDF export
+    private class TransactionItem {
+        private Date date;
+        private String description;
+        private String category;
+        private double amount;
+        private double balance;
+        
+        public TransactionItem(Date date, String description, String category, double amount, double balance) {
+            this.date = date;
+            this.description = description;
+            this.category = category;
+            this.amount = amount;
+            this.balance = balance;
+        }
+        
+        public Date getDate() {
+            return date;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+        
+        public String getCategory() {
+            return category;
+        }
+        
+        public double getAmount() {
+            return amount;
+        }
+        
+        public double getBalance() {
+            return balance;
+        }
+    }
+    
+    // Fetch transaction history from database
+    private List<TransactionItem> fetchTransactionHistory() {
+        List<TransactionItem> transactions = new ArrayList<>();
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT t.transaction_date, t.description, t.transaction_type as category, " +
+                           "t.amount, a.balance " +
+                           "FROM transactions t " +
+                           "JOIN accounts a ON t.account_id = a.account_id " +
+                           "WHERE a.username = ? OR a.account_id = ? " +
+                           "ORDER BY t.transaction_date DESC LIMIT 20"; // Get most recent 20 transactions
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, userName);
+            stmt.setInt(2, userId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Date date = rs.getDate("transaction_date");
+                String description = rs.getString("description");
+                String category = rs.getString("category");
+                double amount = rs.getDouble("amount");
+                double balance = rs.getDouble("balance");
+                
+                transactions.add(new TransactionItem(date, description, category, amount, balance));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, 
+                    "Database error loading transactions: " + e.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+            
+            // Add a placeholder transaction if there's an error
+            transactions.add(new TransactionItem(new Date(), "Error loading transactions", "Error", 0.0, 0.0));
+        }
+        
+        // If no transactions found, add a placeholder
+        if (transactions.isEmpty()) {
+            transactions.add(new TransactionItem(new Date(), "No transactions found", "Info", 0.0, 0.0));
+        }
+        
+        return transactions;
     }
     
     public static void main(String[] args) {
