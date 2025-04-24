@@ -18,6 +18,20 @@
   </properties>
 
   <dependencies>
+
+  <!-- ZXing Core - For QR code generation and reading -->
+<dependency>
+    <groupId>com.google.zxing</groupId>
+    <artifactId>core</artifactId>
+    <version>3.4.1</version>
+</dependency>
+
+<!-- ZXing Java SE extensions -->
+<dependency>
+    <groupId>com.google.zxing</groupId>
+    <artifactId>javase</artifactId>
+    <version>3.4.1</version>
+</dependency>
   <dependency>
     <groupId>com.lowagie</groupId>
     <artifactId>itext</artifactId>

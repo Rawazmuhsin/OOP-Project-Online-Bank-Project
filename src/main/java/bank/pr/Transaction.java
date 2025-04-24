@@ -58,6 +58,35 @@ public class Transaction extends JFrame {
         this.userName = userName;
         initializeUI();
     }
+    
+    // Add this method to allow setting user info after initialization
+    public void setUserInfo(String userName, int userId) {
+        this.userName = userName;
+        this.userId = userId;
+        
+        // Refresh transaction data if UI is already initialized
+        refreshTransactionData();
+    }
+    
+    // Method to refresh transaction data based on user info
+    private void refreshTransactionData() {
+        // Remove old content panel
+        for (java.awt.Component comp : getContentPane().getComponents()) {
+            if (comp instanceof JPanel && comp.getName() != null && comp.getName().equals("mainContentPanel")) {
+                getContentPane().remove(comp);
+                break;
+            }
+        }
+        
+        // Create and add new content panel with updated data
+        JPanel mainContentPanel = createTransactionsContentPanel();
+        mainContentPanel.setName("mainContentPanel");
+        add(mainContentPanel, BorderLayout.CENTER);
+        
+        // Refresh UI
+        revalidate();
+        repaint();
+    }
 
     private void initializeUI() {
         setTitle(" Kurdish - O - Banking (KOB) - Transactions");
@@ -72,6 +101,7 @@ public class Transaction extends JFrame {
 
         // Create main content panel
         JPanel mainContentPanel = createTransactionsContentPanel();
+        mainContentPanel.setName("mainContentPanel");
         add(mainContentPanel, BorderLayout.CENTER);
     }
 
@@ -131,7 +161,46 @@ public class Transaction extends JFrame {
             sidebarPanel.add(menuLabel);
             yPos += 40;
         }
+        
+        // Add logout button at the bottom
+        JLabel logoutLabel = new JLabel("Logout");
+        logoutLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        logoutLabel.setForeground(Color.WHITE);
+        logoutLabel.setBounds(60, 700, 200, 30);
+        logoutLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        logoutLabel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent evt) {
+                handleLogout();
+            }
+
+            public void mouseEntered(MouseEvent evt) {
+                logoutLabel.setForeground(new Color(200, 200, 200));
+            }
+
+            public void mouseExited(MouseEvent evt) {
+                logoutLabel.setForeground(Color.WHITE);
+            }
+        });
+        sidebarPanel.add(logoutLabel);
+        
         return sidebarPanel;
+    }
+    
+    private void handleLogout() {
+        int response = JOptionPane.showConfirmDialog(
+            this,
+            "Are you sure you want to logout?",
+            "Confirm Logout",
+            JOptionPane.YES_NO_OPTION
+        );
+        
+        if (response == JOptionPane.YES_OPTION) {
+            SwingUtilities.invokeLater(() -> {
+                LoginUI loginScreen = new LoginUI();
+                loginScreen.setVisible(true);
+                this.dispose();
+            });
+        }
     }
 
     private void handleMenuItemClick(String menuItem) {
@@ -148,6 +217,7 @@ public class Transaction extends JFrame {
             case "Withdraw":
                 SwingUtilities.invokeLater(() -> {
                     Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setUserInfo(userName, userId);
                     withdrawScreen.setVisible(true);
                     this.dispose();
                 });
@@ -156,6 +226,7 @@ public class Transaction extends JFrame {
             case "Deposit":
                 SwingUtilities.invokeLater(() -> {
                     Deposite depositScreen = new Deposite();
+                    depositScreen.setUserInfo(userName, userId);
                     depositScreen.setVisible(true);
                     this.dispose();
                 });
@@ -164,6 +235,7 @@ public class Transaction extends JFrame {
             case "Transfer":
                 SwingUtilities.invokeLater(() -> {
                     Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, userId);
                     transferScreen.setVisible(true);
                     this.dispose();
                 });
@@ -196,10 +268,17 @@ public class Transaction extends JFrame {
         };
         mainPanel.setLayout(null);
 
+        // Display username at the top right corner
+        JLabel userInfoLabel = new JLabel("User: " + userName + " (ID: " + userId + ")");
+        userInfoLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        userInfoLabel.setForeground(new Color(52, 58, 64));
+        userInfoLabel.setBounds(350, 10, 200, 20);
+        mainPanel.add(userInfoLabel);
+
         // Main content area (white rounded rectangle)
         RoundedPanel contentPanel = new RoundedPanel(10);
         contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBounds(20, 20, 530, 740);
+        contentPanel.setBounds(20, 40, 510, 720);
         contentPanel.setLayout(null);
         mainPanel.add(contentPanel);
 
@@ -213,7 +292,7 @@ public class Transaction extends JFrame {
         // Create table headers
         RoundedPanel headerPanel = new RoundedPanel(5);
         headerPanel.setBackground(new Color(248, 250, 252)); // #f8fafc
-        headerPanel.setBounds(20, 100, 490, 30);
+        headerPanel.setBounds(20, 100, 470, 30);
         headerPanel.setLayout(new GridLayout(1, 5));
         contentPanel.add(headerPanel);
 
@@ -237,6 +316,14 @@ public class Transaction extends JFrame {
 
     private ArrayList<TransactionItem> loadTransactionsFromDatabase() {
         ArrayList<TransactionItem> transactions = new ArrayList<>();
+        
+        // Check if user ID is valid before querying
+        if (userId <= 0) {
+            System.out.println("Warning: Invalid user ID: " + userId);
+            transactions.add(new TransactionItem(new Date(), "Please log in to view transactions", "Info", 0.0, 0.0));
+            return transactions;
+        }
+        
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Query to get transactions for the current user
             String query = "SELECT t.transaction_date, t.description, t.transaction_type as category, " +
@@ -248,6 +335,8 @@ public class Transaction extends JFrame {
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, userName);
             stmt.setInt(2, userId);
+            
+            System.out.println("Executing query for username: " + userName + ", userId: " + userId);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
@@ -285,7 +374,7 @@ public class Transaction extends JFrame {
 
             RoundedPanel rowPanel = new RoundedPanel(5);
             rowPanel.setBackground(i % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)); // Alternate row colors
-            rowPanel.setBounds(20, yPos, 490, 30);
+            rowPanel.setBounds(20, yPos, 470, 30);
             rowPanel.setLayout(new GridLayout(1, 5));
             contentPanel.add(rowPanel);
 

@@ -23,6 +23,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
 public class Dashbord extends JFrame {
@@ -34,6 +36,8 @@ public class Dashbord extends JFrame {
     private JLabel savingsBalanceLabel;
     private JLabel checkingAccountIdLabel;
     private JLabel savingsAccountIdLabel;
+    private JPanel qrCodePanel; // Added for QR code display
+    private JTabbedPane mainTabbedPane; // Reference to the main tabbed pane
 
     public Dashbord() {
         setTitle(" Kurdish - O - Banking (KOB)");
@@ -42,7 +46,7 @@ public class Dashbord extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Sidebar Panel
+        // Sidebar
         JPanel sidebar = new JPanel();
         sidebar.setBackground(new Color(20, 25, 45));
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
@@ -53,8 +57,8 @@ public class Dashbord extends JFrame {
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
-        // Updated menu items to include Deposit and Withdraw
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards"};
+        // Updated menu items to include QR Code option
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
 
         sidebar.add(titleLabel);
         for (String item : menuItems) {
@@ -90,6 +94,10 @@ public class Dashbord extends JFrame {
         greeting.setFont(new Font("SansSerif", Font.PLAIN, 14));
         content.add(greeting, BorderLayout.NORTH);
 
+        // Create a tabbed pane for different content sections
+        mainTabbedPane = new JTabbedPane();
+        
+        // Account cards panel
         JPanel cardsPanel = new JPanel();
         cardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
         cardsPanel.setBackground(new Color(245, 247, 251));
@@ -105,8 +113,17 @@ public class Dashbord extends JFrame {
 
         cardsPanel.add(checkingCard);
         cardsPanel.add(savingsCard);
-
-        content.add(cardsPanel, BorderLayout.CENTER);
+        
+        // QR Code panel (initially empty, will be populated in setUserInfo)
+        qrCodePanel = new JPanel();
+        qrCodePanel.setLayout(new BorderLayout());
+        qrCodePanel.setBackground(new Color(245, 247, 251));
+        
+        // Add tabs
+        mainTabbedPane.addTab("Accounts", new JScrollPane(cardsPanel));
+        mainTabbedPane.addTab("QR Codes", new JScrollPane(qrCodePanel));
+        
+        content.add(mainTabbedPane, BorderLayout.CENTER);
 
         // Add to frame
         add(sidebar, BorderLayout.WEST);
@@ -173,6 +190,9 @@ public class Dashbord extends JFrame {
         // Load and display account balances and account IDs
         loadAccountInfo();
         
+        // Generate and display QR codes
+        loadQRCodes();
+        
         // Debug information
         System.out.println("Dashboard: Set user info - User: " + userName + ", Account ID: " + userId);
     }
@@ -209,7 +229,23 @@ public class Dashbord extends JFrame {
         }
     }
     
-    // Updated method to handle button clicks with Deposit and Withdraw options
+    /**
+     * Load and display QR codes for the user's accounts
+     */
+    private void loadQRCodes() {
+        // Remove any existing components
+        qrCodePanel.removeAll();
+        
+        // Create QR code panel using the BankQRGenerator
+        JPanel userQRPanel = BankQRGenerator.createQRCodePanel(userId, userName);
+        qrCodePanel.add(userQRPanel, BorderLayout.CENTER);
+        
+        // Refresh the panel
+        qrCodePanel.revalidate();
+        qrCodePanel.repaint();
+    }
+    
+    // Updated method to handle button clicks including the QR Codes option
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
         
@@ -273,6 +309,10 @@ public class Dashbord extends JFrame {
             case "Cards":
                 // Go to cards page
                 JOptionPane.showMessageDialog(this, "Cards page coming soon!");
+                break;
+            case "QR Codes":
+                // Show QR Codes tab - FIXED by directly using the mainTabbedPane reference
+                mainTabbedPane.setSelectedIndex(1);
                 break;
             default:
                 break;

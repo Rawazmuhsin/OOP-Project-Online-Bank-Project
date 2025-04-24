@@ -35,6 +35,7 @@ public class Transfer extends JFrame {
     private JTextField toAccountField;
     private JTextField fromAccountField;
     private JButton verifyButton;
+    private JButton scanQRButton; // Added QR scan button
     private JLabel verificationStatusLabel;
     private boolean isVerified = false;
     private String verifiedRecipientName = "";
@@ -132,7 +133,7 @@ public class Transfer extends JFrame {
         content.add(Box.createVerticalStrut(20));
 
         // To Account with Verify Button
-        JLabel toLabel = new JLabel("To Account (Enter recipient's account ID)");
+        JLabel toLabel = new JLabel("To Account (Enter recipient's account ID or scan QR code)");
         toLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
         
         // Panel for account input and verify button
@@ -140,7 +141,7 @@ public class Transfer extends JFrame {
         accountInputPanel.setOpaque(false);
         
         toAccountField = new JTextField();
-        toAccountField.setPreferredSize(new Dimension(250, 30));
+        toAccountField.setPreferredSize(new Dimension(200, 30));
         
         verifyButton = new JButton("Verify");
         verifyButton.setBackground(new Color(60, 130, 180));
@@ -153,9 +154,23 @@ public class Transfer extends JFrame {
             }
         });
         
+        // New button for QR code scanning
+        scanQRButton = new JButton("Scan QR");
+        scanQRButton.setBackground(new Color(100, 180, 100));
+        scanQRButton.setForeground(Color.WHITE);
+        scanQRButton.setFocusPainted(false);
+        scanQRButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                openQRCodeScanner();
+            }
+        });
+        
         accountInputPanel.add(toAccountField);
         accountInputPanel.add(Box.createHorizontalStrut(10));
         accountInputPanel.add(verifyButton);
+        accountInputPanel.add(Box.createHorizontalStrut(10));
+        accountInputPanel.add(scanQRButton);
         
         // Verification status label
         verificationStatusLabel = new JLabel("");
@@ -306,6 +321,33 @@ public class Transfer extends JFrame {
             }
         }
     }
+    
+    /**
+     * Open the QR code scanner window
+     * Fixed to use SwingUtilities.invokeLater for thread safety
+     */
+    private void openQRCodeScanner() {
+        SwingUtilities.invokeLater(() -> {
+            QRCodeTransfer qrScanner = new QRCodeTransfer(this, userName, accountId);
+            qrScanner.setVisible(true);
+        });
+    }
+    
+    /**
+     * Method called by QRCodeTransfer to set recipient info from QR code
+     * @param recipientId The scanned account ID
+     * @param recipientName The scanned username
+     */
+    public void setRecipientFromQRCode(int recipientId, String recipientName) {
+        // Set the account field
+        toAccountField.setText(String.valueOf(recipientId));
+        
+        // Set verification info
+        verifiedRecipientName = recipientName;
+        verificationStatusLabel.setText("✓ Verified from QR code: " + recipientName);
+        verificationStatusLabel.setForeground(new Color(0, 150, 0));
+        isVerified = true;
+    }
 
     // Method to verify recipient account
     private void verifyRecipientAccount() {
@@ -447,7 +489,7 @@ public class Transfer extends JFrame {
         
         if (!isVerified) {
             JOptionPane.showMessageDialog(this, 
-                    "Please verify the recipient account first by clicking the 'Verify' button", 
+                    "Please verify the recipient account first by clicking the 'Verify' button or using QR code", 
                     "Verification Required", 
                     JOptionPane.WARNING_MESSAGE);
             return;
