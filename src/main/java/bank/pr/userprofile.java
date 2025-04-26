@@ -9,12 +9,14 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -40,6 +42,11 @@ public class UserProfile extends JFrame {
     private boolean editMode = false;
     private RoundedButton editButton;
     private RoundedButton saveButton;
+    
+    // Profile photo components
+    private BufferedImage profileImage = null;
+    private ProfilePhotoPanel photoPanel;
+    private JLabel photoLabel;
 
     public UserProfile() {
         setTitle(" Kurdish - O - Banking (KOB) - Profile");
@@ -75,7 +82,7 @@ public class UserProfile extends JFrame {
         titleLabel.setForeground(Color.WHITE);
         titleLabel.setBounds(60, 40, 200, 30);
         sidebarPanel.add(titleLabel);
-
+        
         // Active sidebar button (Profile)
         RoundedButton profileButton = new RoundedButton("Profile", 5);
         profileButton.setBackground(new Color(52, 58, 64)); // #343a40
@@ -141,21 +148,26 @@ public class UserProfile extends JFrame {
         titleLabel.setBounds(30, 30, 200, 30);
         contentPanel.add(titleLabel);
 
-        // Profile Photo Placeholder
-        JPanel photoPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(235, 237, 239)); // #ebedef
-                g2.fillOval(0, 0, getWidth(), getHeight());
-            }
-        };
+        // Profile Photo Panel
+        photoPanel = new ProfilePhotoPanel();
         photoPanel.setBounds(350, 70, 120, 120);
         contentPanel.add(photoPanel);
 
-        JLabel photoLabel = new JLabel("Profile Photo", SwingConstants.CENTER);
+        // Upload Photo Button
+        RoundedButton uploadButton = new RoundedButton("Upload Photo", 5);
+        uploadButton.setBackground(new Color(13, 110, 253)); // #0d6efd
+        uploadButton.setForeground(Color.WHITE);
+        uploadButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        uploadButton.setBounds(350, 230, 120, 25);
+        uploadButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                uploadProfilePhoto();
+            }
+        });
+        contentPanel.add(uploadButton);
+
+        photoLabel = new JLabel("Profile Photo", SwingConstants.CENTER);
         photoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         photoLabel.setForeground(new Color(134, 144, 156)); // #86909c
         photoLabel.setBounds(350, 200, 120, 20);
@@ -166,7 +178,7 @@ public class UserProfile extends JFrame {
         String[] fieldValues = {"", "", "", ""}; // Empty values initially
         int[] yPositions = {250, 320, 390, 460};
         boolean[] isMultiline = {false, false, false, true};
-
+        
         for (int i = 0; i < fieldLabels.length; i++) {
             // Field Label
             JLabel fieldLabel = new JLabel(fieldLabels[i]);
@@ -270,6 +282,36 @@ public class UserProfile extends JFrame {
         contentPanel.add(deleteButton);
 
         return mainPanel;
+    }
+    
+    // Method to handle profile photo upload
+    private void uploadProfilePhoto() {
+        BufferedImage selectedImage = ImageUploader.browseForImage(this);
+        
+        if (selectedImage != null) {
+            // Resize the image to fit our photo panel
+            BufferedImage resizedImage = ImageUploader.resizeImage(selectedImage, 120, 120);
+            
+            // Save the image
+            boolean saved = ImageUploader.saveUserImage(userId, resizedImage);
+            
+            if (saved) {
+                // Update the profile photo display
+                profileImage = resizedImage;
+                photoPanel.setProfileImage(profileImage);
+                photoLabel.setText("Profile Photo");
+                
+                JOptionPane.showMessageDialog(this, 
+                        "Profile photo updated successfully!",
+                        "Success", 
+                        JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to save profile photo. Please try again.",
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
     
     // Method to delete the account from database
@@ -437,6 +479,31 @@ public class UserProfile extends JFrame {
         
         // Load user data from database
         loadUserData();
+        
+        // Set the default avatar size
+        if (photoPanel != null) {
+            photoPanel.generateDefaultAvatar();
+        }
+        
+        // Load profile image
+        loadProfileImage();
+    }
+    
+    // Method to load profile image
+    private void loadProfileImage() {
+        BufferedImage loadedImage = ImageUploader.loadUserImage(userId);
+        
+        if (loadedImage != null) {
+            profileImage = loadedImage;
+            photoPanel.setProfileImage(profileImage);
+            photoLabel.setText("Profile Photo");
+        } else {
+            profileImage = null;
+            photoPanel.setProfileImage(null);
+            // Generate default avatar based on username
+            photoPanel.generateDefaultAvatar();
+            photoLabel.setText("Default Avatar");
+        }
     }
     
     // Method to load user data from database
@@ -494,7 +561,7 @@ public class UserProfile extends JFrame {
     private void handleNavigation(String destination) {
         System.out.println("Navigating to: " + destination);
         this.dispose(); // Close current window
-
+        
         // Open the selected page
         switch (destination) {
             case "Dashboard":
@@ -548,6 +615,79 @@ public class UserProfile extends JFrame {
             UserProfile gui = new UserProfile();
             gui.setVisible(true);
         });
+    }
+
+    // Custom Profile Photo Panel class
+    private class ProfilePhotoPanel extends JPanel {
+        private BufferedImage profileImage;
+        private BufferedImage defaultAvatar;
+        
+        public ProfilePhotoPanel() {
+            setBackground(new Color(235, 237, 239)); // #ebedef
+            // Add a component listener to handle resize events
+            addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override
+                public void componentResized(java.awt.event.ComponentEvent e) {
+                    // Re-generate default avatar when component is resized
+                    if (profileImage == null && userName != null && !userName.isEmpty()) {
+                        generateDefaultAvatar();
+                    }
+                }
+            });
+        }
+        
+        public void setProfileImage(BufferedImage image) {
+            this.profileImage = image;
+            repaint(); // Force panel to redraw with the new image
+        }
+        
+        /**
+         * Generate default avatar based on username
+         */
+        public void generateDefaultAvatar() {
+            if (userName != null && !userName.isEmpty()) {
+                this.defaultAvatar = DefaultAvatarGenerator.generateDefaultAvatar(userName, getWidth(), getHeight());
+                if (profileImage == null) {
+                    repaint();
+                }
+            }
+        }
+        
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Create a circular clipping shape
+            java.awt.Shape clip = new java.awt.geom.Ellipse2D.Double(0, 0, getWidth(), getHeight());
+            g2.setClip(clip);
+            
+            // Draw profile image if available
+            if (profileImage != null) {
+                // Draw the image
+                g2.drawImage(profileImage, 0, 0, getWidth(), getHeight(), null);
+            } else if (defaultAvatar != null) {
+                // Draw default avatar with initials
+                g2.drawImage(defaultAvatar, 0, 0, getWidth(), getHeight(), null);
+            } else {
+                // Draw background
+                g2.setColor(new Color(235, 237, 239)); // #ebedef
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                
+                // Draw placeholder icon (simple silhouette)
+                g2.setColor(new Color(200, 200, 200));
+                
+                // Head
+                int headSize = getWidth() / 3;
+                g2.fillOval(getWidth()/2 - headSize/2, getHeight()/4, headSize, headSize);
+                
+                // Body
+                g2.fillOval(getWidth()/2 - getWidth()/4, getHeight()/2, getWidth()/2, getHeight()/2);
+            }
+            
+            g2.setClip(null);
+        }
     }
 
     // Custom Rounded Panel class
