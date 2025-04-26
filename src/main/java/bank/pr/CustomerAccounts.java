@@ -166,24 +166,37 @@ public class CustomerAccounts extends JFrame {
             filterButton.setFocusPainted(false);
             filterPanel.add(filterButton);
         }
+        
+        // Add View Customer Transactions button
+        JButton viewTransactionsButton = new JButton("View Customer Transactions");
+        viewTransactionsButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        viewTransactionsButton.setBackground(new Color(230, 247, 255));
+        viewTransactionsButton.setForeground(new Color(13, 110, 253));
+        viewTransactionsButton.setBorder(BorderFactory.createLineBorder(new Color(230, 247, 255)));
+        viewTransactionsButton.setFocusPainted(false);
+        viewTransactionsButton.addActionListener(e -> {
+            promptForAccountId();
+        });
+        filterPanel.add(viewTransactionsButton);
+        
         contentPanel.add(filterPanel);
 
         // Create table with data from database
-        // Added "ACTION" column for remove button
-        String[] columnNames = {"CUSTOMER NAME", "ACCOUNT NUMBER", "ACCOUNT TYPE", "BALANCE", "STATUS", "ACTION"};
+        // Added "VIEW TRANSACTIONS" column
+        String[] columnNames = {"CUSTOMER NAME", "ACCOUNT NUMBER", "ACCOUNT TYPE", "BALANCE", "STATUS", "ACTION", "VIEW TRANSACTIONS"};
         
         // Create table model for dynamic updates
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Make only the ACTION column editable
-                return column == 5;
+                // Make only the ACTION and VIEW TRANSACTIONS columns editable
+                return column == 5 || column == 6;
             }
             
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                // Return JButton class for the ACTION column
-                return columnIndex == 5 ? JButton.class : Object.class;
+                // Return JButton class for the ACTION and VIEW TRANSACTIONS columns
+                return (columnIndex == 5 || columnIndex == 6) ? JButton.class : Object.class;
             }
         };
 
@@ -193,14 +206,25 @@ public class CustomerAccounts extends JFrame {
         accountsTable.setIntercellSpacing(new Dimension(0, 0));
         accountsTable.setFont(new Font("Arial", Font.PLAIN, 14));
         
-        // Set custom renderer for the button column
-        accountsTable.getColumnModel().getColumn(5).setCellRenderer(new ButtonRenderer("Remove"));
+        // Set custom renderer for the button columns
+        accountsTable.getColumnModel().getColumn(5).setCellRenderer(new ButtonRenderer("Remove", Color.RED));
+        accountsTable.getColumnModel().getColumn(6).setCellRenderer(new ButtonRenderer("Transactions", Color.BLUE));
         
-        // Set custom editor for the button column
-        accountsTable.getColumnModel().getColumn(5).setCellEditor(new ButtonEditor(new JButton("Remove"), this));
+        // Set custom editor for the button columns
+        accountsTable.getColumnModel().getColumn(5).setCellEditor(new ButtonEditor(new JButton("Remove"), this, ButtonType.REMOVE));
+        accountsTable.getColumnModel().getColumn(6).setCellEditor(new ButtonEditor(new JButton("Transactions"), this, ButtonType.TRANSACTIONS));
         
         // Load data from database
         loadAccountsData();
+        
+        // Adjust column widths for better appearance
+        accountsTable.getColumnModel().getColumn(0).setPreferredWidth(150); // Customer name
+        accountsTable.getColumnModel().getColumn(1).setPreferredWidth(120); // Account number
+        accountsTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Account type  
+        accountsTable.getColumnModel().getColumn(3).setPreferredWidth(100); // Balance
+        accountsTable.getColumnModel().getColumn(4).setPreferredWidth(80);  // Status
+        accountsTable.getColumnModel().getColumn(5).setPreferredWidth(80);  // Remove button
+        accountsTable.getColumnModel().getColumn(6).setPreferredWidth(120); // Transactions button
         
         // Custom renderer for status column
         accountsTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
@@ -359,20 +383,21 @@ public class CustomerAccounts extends JFrame {
                 // Determine account status - for demo purposes, any account with balance <= 0 is "Inactive"
                 String status = balance > 0 ? "Active" : "Inactive";
                 
-                // Add new row with a Remove button
+                // Add new row with both Remove and Transactions buttons
                 tableModel.addRow(new Object[]{
                     username,
                     accountNumber,
                     accountType,
                     balance,
                     status,
-                    "Remove" // This will be replaced by the button renderer
+                    "Remove",       // This will be replaced by the button renderer
+                    "Transactions"  // This will be replaced by the button renderer
                 });
             }
             
             // If no accounts were found, display a message
             if (tableModel.getRowCount() == 0) {
-                tableModel.addRow(new Object[]{"No accounts found", "", "", "", "", ""});
+                tableModel.addRow(new Object[]{"No accounts found", "", "", "", "", "", ""});
             }
             
         } catch (SQLException e) {
@@ -448,6 +473,38 @@ public class CustomerAccounts extends JFrame {
     }
     
     /**
+     * Shows a dialog to enter account ID and view transactions
+     */
+    private void promptForAccountId() {
+        String input = JOptionPane.showInputDialog(this, 
+            "Enter Account ID to view transactions:",
+            "View Customer Transactions", 
+            JOptionPane.QUESTION_MESSAGE);
+        
+        if (input != null && !input.isEmpty()) {
+            try {
+                int accountId = Integer.parseInt(input);
+                viewTransactions(accountId);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this,
+                    "Please enter a valid account ID (number only).",
+                    "Invalid Input",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    /**
+     * View transactions for a specific account ID
+     * @param accountId The account ID to view transactions for
+     */
+    public void viewTransactions(int accountId) {
+        // Open a new window to show transactions for this account ID
+        dispose(); // Close current window
+        SwingUtilities.invokeLater(() -> new CustomerTransactions(accountId, adminId).setVisible(true));
+    }
+    
+    /**
      * Helper method to navigate between screens
      */
     private void navigateToScreen(String screenName) {
@@ -482,14 +539,20 @@ public class CustomerAccounts extends JFrame {
         }
     }
     
+    // Enum for button types
+    enum ButtonType {
+        REMOVE,
+        TRANSACTIONS
+    }
+    
     /**
-     * Custom renderer for the button column
+     * Custom renderer for the button columns
      */
     class ButtonRenderer extends JButton implements TableCellRenderer {
-        public ButtonRenderer(String text) {
+        public ButtonRenderer(String text, Color color) {
             setOpaque(true);
             setText(text);
-            setBackground(new Color(220, 53, 69)); // #dc3545 (red)
+            setBackground(color);
             setForeground(Color.WHITE);
             setFocusPainted(false);
             setBorderPainted(false);
@@ -503,18 +566,20 @@ public class CustomerAccounts extends JFrame {
     }
     
     /**
-     * Custom editor for the button column to handle click events
+     * Custom editor for the button columns to handle click events
      */
     class ButtonEditor extends javax.swing.DefaultCellEditor {
         protected JButton button;
         private String label;
         private boolean isPushed;
         private CustomerAccounts parent;
+        private ButtonType buttonType;
         
-        public ButtonEditor(JButton button, CustomerAccounts parent) {
+        public ButtonEditor(JButton button, CustomerAccounts parent, ButtonType buttonType) {
             super(new javax.swing.JCheckBox());
             this.button = button;
             this.parent = parent;
+            this.buttonType = buttonType;
             button.setOpaque(true);
             button.addActionListener(new ActionListener() {
                 @Override
@@ -533,7 +598,14 @@ public class CustomerAccounts extends JFrame {
                 label = value.toString();
             }
             button.setText(label);
-            button.setBackground(new Color(220, 53, 69)); // #dc3545 (red)
+            
+            // Set different colors based on button type
+            if (buttonType == ButtonType.REMOVE) {
+                button.setBackground(new Color(220, 53, 69)); // Red for remove
+            } else {
+                button.setBackground(new Color(13, 110, 253)); // Blue for transactions
+            }
+            
             button.setForeground(Color.WHITE);
             isPushed = true;
             return button;
@@ -554,10 +626,16 @@ public class CustomerAccounts extends JFrame {
         @Override
         public void fireEditingStopped() {
             super.fireEditingStopped();
-            // When button is clicked, call removeAccount method
+            
             int row = accountsTable.getSelectedRow();
-            if (row >= 0) {
-                parent.removeAccount(row);
+            if (row >= 0 && row < accountIds.size()) {
+                // Perform action based on button type
+                if (buttonType == ButtonType.REMOVE) {
+                    parent.removeAccount(row);
+                } else if (buttonType == ButtonType.TRANSACTIONS) {
+                    int accountId = accountIds.get(row);
+                    parent.viewTransactions(accountId);
+                }
             }
         }
     }

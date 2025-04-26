@@ -25,10 +25,6 @@ import com.google.zxing.common.HybridBinarizer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * QR Code scanner for the Transfer functionality
- * Allows selecting a QR code to automatically populate recipient details
- */
 public class QRCodeTransfer extends JFrame {
     
     private String userName;

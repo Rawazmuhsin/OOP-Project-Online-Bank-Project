@@ -9,6 +9,9 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,9 +19,12 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -26,6 +32,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Dashbord extends JFrame {
 
@@ -230,19 +237,169 @@ public class Dashbord extends JFrame {
     }
     
     /**
-     * Load and display QR codes for the user's accounts
+     * Load and display QR codes for the user's accounts without encryption dialogs
      */
     private void loadQRCodes() {
         // Remove any existing components
         qrCodePanel.removeAll();
         
-        // Create QR code panel using the BankQRGenerator
-        JPanel userQRPanel = BankQRGenerator.createQRCodePanel(userId, userName);
-        qrCodePanel.add(userQRPanel, BorderLayout.CENTER);
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            // Create a panel for QR codes with a clean layout
+            JPanel qrCodesContainer = new JPanel();
+            qrCodesContainer.setLayout(new BorderLayout(10, 10));
+            qrCodesContainer.setBackground(Color.WHITE);
+            qrCodesContainer.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            
+            // Header
+            JLabel headerLabel = new JLabel("Your Account QR Codes");
+            headerLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+            headerLabel.setHorizontalAlignment(JLabel.CENTER);
+            headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+            qrCodesContainer.add(headerLabel, BorderLayout.NORTH);
+            
+            // Container for the QR code cards
+            JPanel cardsContainer = new JPanel();
+            cardsContainer.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 20));
+            cardsContainer.setBackground(Color.WHITE);
+            
+            // Get user accounts
+            String query = "SELECT account_id, account_type, balance FROM accounts WHERE username = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, userName);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                int accountId = rs.getInt("account_id");
+                String accountType = rs.getString("account_type");
+                double balance = rs.getDouble("balance");
+                
+                // Create QR code card for each account
+                JPanel qrCard = createQRCodeCard(accountId, accountType, balance);
+                cardsContainer.add(qrCard);
+            }
+            
+            // Add cards to container with scroll capability
+            JScrollPane scrollPane = new JScrollPane(cardsContainer);
+            scrollPane.setBorder(null);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            qrCodesContainer.add(scrollPane, BorderLayout.CENTER);
+            
+            // Add instructions at the bottom
+            JLabel instructionsLabel = new JLabel(
+                "<html><p>Use these QR codes to quickly transfer money between accounts. " +
+                "Scan with the banking app to initiate a transfer.</p></html>");
+            instructionsLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+            instructionsLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+            qrCodesContainer.add(instructionsLabel, BorderLayout.SOUTH);
+            
+            // Add the container to the main QR panel
+            qrCodePanel.add(qrCodesContainer, BorderLayout.CENTER);
+            
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Error loading QR codes: " + ex.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
         
         // Refresh the panel
         qrCodePanel.revalidate();
         qrCodePanel.repaint();
+    }
+    
+    /**
+     * Create a card containing the QR code for an account
+     */
+    private JPanel createQRCodeCard(int accountId, String accountType, double balance) {
+        JPanel card = new JPanel();
+        card.setPreferredSize(new Dimension(320, 400));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        card.setLayout(new BorderLayout(0, 10));
+        
+        // Account information header
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new GridLayout(3, 1));
+        headerPanel.setBackground(Color.WHITE);
+        
+        JLabel accountTypeLabel = new JLabel(accountType + " Account");
+        accountTypeLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        accountTypeLabel.setHorizontalAlignment(JLabel.CENTER);
+        
+        JLabel accountIdLabel = new JLabel("Account ID: " + accountId);
+        accountIdLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        accountIdLabel.setHorizontalAlignment(JLabel.CENTER);
+        
+        JLabel balanceLabel = new JLabel(String.format("Balance: $%.2f", balance));
+        balanceLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        balanceLabel.setHorizontalAlignment(JLabel.CENTER);
+        
+        headerPanel.add(accountTypeLabel);
+        headerPanel.add(accountIdLabel);
+        headerPanel.add(balanceLabel);
+        card.add(headerPanel, BorderLayout.NORTH);
+        
+        // Generate QR code silently (no dialog)
+        BufferedImage qrImage = BankQRGenerator.generateQRCodeSilent(userId, accountId, accountType);
+        if (qrImage != null) {
+            JLabel qrLabel = new JLabel(new ImageIcon(qrImage));
+            qrLabel.setHorizontalAlignment(JLabel.CENTER);
+            card.add(qrLabel, BorderLayout.CENTER);
+        } else {
+            JLabel errorLabel = new JLabel("Could not generate QR code");
+            errorLabel.setHorizontalAlignment(JLabel.CENTER);
+            card.add(errorLabel, BorderLayout.CENTER);
+        }
+        
+        // Export button
+        JButton exportButton = new JButton("Export QR Code");
+        exportButton.setFocusPainted(false);
+        exportButton.addActionListener(e -> {
+            if (qrImage != null) {
+                saveQRCodeToFile(qrImage, userName + "_" + accountType + "_" + accountId);
+            }
+        });
+        card.add(exportButton, BorderLayout.SOUTH);
+        
+        return card;
+    }
+    
+    /**
+     * Save QR code image to file
+     */
+    private void saveQRCodeToFile(BufferedImage qrImage, String baseFileName) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save QR Code");
+        fileChooser.setSelectedFile(new File(baseFileName + ".png"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("PNG Images", "png"));
+        
+        int userSelection = fileChooser.showSaveDialog(this);
+        
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            
+            // Ensure filename has .png extension
+            if (!fileToSave.getName().toLowerCase().endsWith(".png")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".png");
+            }
+            
+            try {
+                ImageIO.write(qrImage, "PNG", fileToSave);
+                JOptionPane.showMessageDialog(this, 
+                    "QR Code saved successfully to: " + fileToSave.getAbsolutePath(),
+                    "Save Successful", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this,
+                    "Error saving QR code: " + ex.getMessage(),
+                    "Save Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
     
     // Updated method to handle button clicks including the QR Codes option
@@ -311,7 +468,7 @@ public class Dashbord extends JFrame {
                 JOptionPane.showMessageDialog(this, "Cards page coming soon!");
                 break;
             case "QR Codes":
-                // Show QR Codes tab - FIXED by directly using the mainTabbedPane reference
+                // Show QR Codes tab
                 mainTabbedPane.setSelectedIndex(1);
                 break;
             default:
