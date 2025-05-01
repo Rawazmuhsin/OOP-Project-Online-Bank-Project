@@ -2,262 +2,518 @@ package bank.pr;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Cursor;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class ChangePassword extends JFrame {
     
+    private static final long serialVersionUID = 1L;
+    
+    // Colors scheme - same as other screens
+    private static final Color PRIMARY_COLOR = new Color(20, 30, 70);
+    private static final Color SECONDARY_COLOR = new Color(30, 144, 255);
+    private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
+    private static final Color CARD_COLOR = new Color(255, 255, 255);
+    private static final Color TEXT_COLOR = new Color(50, 50, 50);
+    private static final Color LIGHT_TEXT_COLOR = new Color(120, 120, 120);
+    private static final Color ERROR_COLOR = new Color(220, 53, 69);
+    
+    // Components
     private String userName;
     private int userId;
-    
+    private JLabel greeting;
     private JPasswordField currentPasswordField;
     private JPasswordField newPasswordField;
     private JPasswordField confirmPasswordField;
     private JLabel statusLabel;
+    private List<JButton> menuButtons = new ArrayList<>();
+    private JPanel sidebarPanel;
 
     public ChangePassword(String userName, int userId) {
         this.userName = userName;
         this.userId = userId;
         
-        setTitle("Change Password - Kurdish - O - Banking (KOB)");
-        setSize(800, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        setTitle("Kurdish-O-Banking (KOB) - Change Password");
+        setSize(1100, 700);
         setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
+        getContentPane().setBackground(BACKGROUND_COLOR);
         
-        // Create sidebar
-        JPanel sidebar = createSidebar();
-        add(sidebar, BorderLayout.WEST);
+        // Create components
+        createSidebar();
+        createHeaderPanel();
+        createMainContent();
         
-        // Create main content
-        JPanel mainContent = createMainContent();
-        add(mainContent, BorderLayout.CENTER);
-        
-        setVisible(true);
+        // Set icon if available
+        try {
+            setIconImage(new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png").getImage());
+        } catch (Exception e) {
+            System.err.println("Error loading logo: " + e.getMessage());
+        }
     }
     
-    private JPanel createSidebar() {
-        JPanel sidebarPanel = new JPanel() {
+    private void createSidebar() {
+        sidebarPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                g.setColor(new Color(26, 32, 44)); // #1a202c
-                g.fillRect(0, 0, getWidth(), getHeight());
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Create gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, PRIMARY_COLOR, 
+                    0, getHeight(), new Color(10, 20, 50)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+                g2d.dispose();
             }
         };
-        sidebarPanel.setPreferredSize(new Dimension(250, getHeight()));
-        sidebarPanel.setLayout(null);
-
-        // Sidebar title
-        JLabel titleLabel = new JLabel("Kurdish - O - Banking");
-        titleLabel.setFont(new Font("Arial", Font.PLAIN, 18));
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setBounds(60, 40, 200, 30);
-        sidebarPanel.add(titleLabel);
-
-        // Menu buttons/labels
-        String[] menuItems = {"Profile", "Dashboard", "Balance", "Transactions", "Transfer", "Withdraw", "Deposit"};
-        int yPos = 120;
         
-        for (String item : menuItems) {
-            JLabel menuLabel = new JLabel(item);
-            menuLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-            menuLabel.setForeground(Color.WHITE);
-            menuLabel.setBounds(60, yPos, 200, 30);
+        sidebarPanel.setPreferredSize(new Dimension(240, getHeight()));
+        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
+        
+        // Logo panel
+        JPanel logoPanel = new JPanel();
+        logoPanel.setOpaque(false);
+        logoPanel.setLayout(new BorderLayout());
+        logoPanel.setBorder(BorderFactory.createEmptyBorder(25, 15, 25, 15));
+        
+        JLabel bankName = new JLabel("Kurdish-O-Banking");
+        bankName.setForeground(Color.WHITE);
+        bankName.setFont(new Font("SansSerif", Font.BOLD, 18));
+        
+        JLabel tagline = new JLabel("Your Future, Your Bank");
+        tagline.setForeground(new Color(200, 200, 200));
+        tagline.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        
+        JPanel namePanel = new JPanel();
+        namePanel.setOpaque(false);
+        namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
+        namePanel.add(bankName);
+        namePanel.add(Box.createVerticalStrut(3));
+        namePanel.add(tagline);
+        
+        logoPanel.add(namePanel, BorderLayout.CENTER);
+        
+        // Try to add logo image if available
+        try {
+            ImageIcon logoIcon = new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png");
+            java.awt.Image image = logoIcon.getImage().getScaledInstance(40, 40, java.awt.Image.SCALE_SMOOTH);
+            logoIcon = new ImageIcon(image);
+            JLabel logoLabel = new JLabel(logoIcon);
+            logoPanel.add(logoLabel, BorderLayout.WEST);
+        } catch (Exception e) {
+            System.err.println("Error loading small logo: " + e.getMessage());
+        }
+        
+        sidebarPanel.add(logoPanel);
+        
+        // Add separator
+        JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
+        separator.setForeground(new Color(70, 80, 120));
+        separator.setBackground(new Color(70, 80, 120));
+        separator.setMaximumSize(new Dimension(220, 1));
+        sidebarPanel.add(separator);
+        sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        // Menu items with icons
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
+        
+        for (int i = 0; i < menuItems.length; i++) {
+            JButton button = createMenuButton(menuItems[i], iconNames[i]);
             
-            // Highlight current page
-            if (item.equals("Profile")) {
-                menuLabel.setFont(new Font("Arial", Font.BOLD, 14));
-                menuLabel.setForeground(new Color(173, 216, 230)); // Light blue
-            }
-            
-            // Make labels clickable
-            menuLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            menuLabel.addMouseListener(new java.awt.event.MouseAdapter() {
-                public void mouseClicked(java.awt.event.MouseEvent evt) {
-                    handleNavigation(item);
-                }
-                public void mouseEntered(java.awt.event.MouseEvent evt) {
-                    if (!item.equals("Profile")) { // Don't change color for current page
-                        menuLabel.setForeground(new Color(200, 200, 200));
-                    }
-                }
-                public void mouseExited(java.awt.event.MouseEvent evt) {
-                    if (!item.equals("Profile")) { // Don't change color for current page
-                        menuLabel.setForeground(Color.WHITE);
-                    }
+            final String item = menuItems[i];
+            button.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    handleButtonClick(item);
+                    updateSelectedButton(item);
                 }
             });
             
-            sidebarPanel.add(menuLabel);
-            yPos += 40;
+            sidebarPanel.add(button);
+            menuButtons.add(button);
+            sidebarPanel.add(Box.createVerticalStrut(5));
         }
         
-        return sidebarPanel;
+        // Set Accounts as initially selected
+        updateSelectedButton("Accounts");
+        
+        // Add logout at bottom
+        sidebarPanel.add(Box.createVerticalGlue());
+        
+        JSeparator bottomSeparator = new JSeparator(SwingConstants.HORIZONTAL);
+        bottomSeparator.setForeground(new Color(70, 80, 120));
+        bottomSeparator.setBackground(new Color(70, 80, 120));
+        bottomSeparator.setMaximumSize(new Dimension(220, 1));
+        sidebarPanel.add(bottomSeparator);
+        
+        JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to logout?",
+                "Logout Confirmation",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (choice == JOptionPane.YES_OPTION) {
+                dispose();
+                // Open login page
+                SwingUtilities.invokeLater(() -> {
+                    LoginUI loginPage = new LoginUI();
+                    loginPage.setVisible(true);
+                });
+            }
+        });
+        
+        sidebarPanel.add(logoutButton);
+        sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        add(sidebarPanel, BorderLayout.WEST);
     }
     
-    private JPanel createMainContent() {
-        JPanel mainPanel = new JPanel() {
+    private JButton createMenuButton(String text, String iconName) {
+        JButton button = new JButton(text);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setIconTextGap(10);
+        button.setMaximumSize(new Dimension(220, 45));
+        button.setPreferredSize(new Dimension(220, 45));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        button.setForeground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        
+        // Try to load icon if available
+        try {
+            ImageIcon icon = new ImageIcon("icons/" + iconName + ".png");
+            java.awt.Image image = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
+            icon = new ImageIcon(image);
+            button.setIcon(icon);
+        } catch (Exception e) {
+            // If icon not found, use text only
+            System.err.println("Icon not found: " + iconName);
+        }
+        
+        // Add hover effect
+        button.addMouseListener(new MouseAdapter() {
             @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                g.setColor(new Color(240, 244, 248)); // #f0f4f8
-                g.fillRect(0, 0, getWidth(), getHeight());
+            public void mouseEntered(MouseEvent e) {
+                if (!button.isSelected()) {
+                    button.setBackground(new Color(45, 55, 95));
+                    button.setContentAreaFilled(true);
+                }
             }
-        };
-        mainPanel.setLayout(null);
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!button.isSelected()) {
+                    button.setContentAreaFilled(false);
+                }
+            }
+        });
         
-        // Content container (white panel)
-        RoundedPanel contentPanel = new RoundedPanel(10);
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBounds(30, 30, 470, 500);
-        contentPanel.setLayout(null);
-        mainPanel.add(contentPanel);
+        return button;
+    }
+    
+    private void updateSelectedButton(String selectedItem) {
+        for (JButton button : menuButtons) {
+            if (button.getText().equals(selectedItem)) {
+                button.setBackground(SECONDARY_COLOR);
+                button.setContentAreaFilled(true);
+                button.setFont(new Font("SansSerif", Font.BOLD, 14));
+                button.putClientProperty("selected", true);
+            } else {
+                button.setContentAreaFilled(false);
+                button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                button.putClientProperty("selected", false);
+            }
+        }
+    }
+    
+    private void createHeaderPanel() {
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setBackground(CARD_COLOR);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(15, 25, 15, 25)
+        ));
         
-        // Title
-        JLabel titleLabel = new JLabel("Change Password");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(52, 58, 64)); // #343a40
-        titleLabel.setBounds(40, 30, 250, 30);
-        contentPanel.add(titleLabel);
+        // Greeting panel
+        JPanel greetingPanel = new JPanel(new BorderLayout());
+        greetingPanel.setOpaque(false);
         
-        // Subtitle with username
-        JLabel subtitleLabel = new JLabel("Update password for " + userName);
-        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        subtitleLabel.setForeground(new Color(108, 117, 125)); // Gray
-        subtitleLabel.setBounds(40, 60, 350, 20);
-        contentPanel.add(subtitleLabel);
+        greeting = new JLabel("Change Password");
+        greeting.setFont(new Font("SansSerif", Font.BOLD, 20));
+        greeting.setForeground(TEXT_COLOR);
         
-        // Form fields
-        int yPos = 120;
-        int fieldHeight = 35;
-        int labelOffset = 25;
-        int gap = 65;
+        JLabel subtitleLabel = new JLabel("Update your account security");
+        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        subtitleLabel.setForeground(LIGHT_TEXT_COLOR);
         
-        // Current password
-        JLabel currentPassLabel = new JLabel("Current Password");
-        currentPassLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        currentPassLabel.setBounds(40, yPos, 150, 20);
-        contentPanel.add(currentPassLabel);
+        greetingPanel.add(greeting, BorderLayout.NORTH);
+        greetingPanel.add(subtitleLabel, BorderLayout.SOUTH);
         
-        currentPasswordField = new JPasswordField();
-        currentPasswordField.setBounds(40, yPos + labelOffset, 390, fieldHeight);
-        currentPasswordField.setBorder(BorderFactory.createLineBorder(new Color(206, 212, 218)));
-        contentPanel.add(currentPasswordField);
+        headerPanel.add(greetingPanel, BorderLayout.WEST);
         
-        // New password
-        JLabel newPassLabel = new JLabel("New Password");
-        newPassLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        newPassLabel.setBounds(40, yPos + gap, 150, 20);
-        contentPanel.add(newPassLabel);
+        // Current date/time panel
+        JPanel dateTimePanel = new JPanel(new BorderLayout());
+        dateTimePanel.setOpaque(false);
         
-        newPasswordField = new JPasswordField();
-        newPasswordField.setBounds(40, yPos + gap + labelOffset, 390, fieldHeight);
-        newPasswordField.setBorder(BorderFactory.createLineBorder(new Color(206, 212, 218)));
-        contentPanel.add(newPasswordField);
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm a");
         
-        // Confirm new password
-        JLabel confirmPassLabel = new JLabel("Confirm New Password");
-        confirmPassLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        confirmPassLabel.setBounds(40, yPos + (gap * 2), 200, 20);
-        contentPanel.add(confirmPassLabel);
+        JLabel dateLabel = new JLabel(now.format(dateFormatter));
+        dateLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        dateLabel.setForeground(TEXT_COLOR);
+        dateLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         
-        confirmPasswordField = new JPasswordField();
-        confirmPasswordField.setBounds(40, yPos + (gap * 2) + labelOffset, 390, fieldHeight);
-        confirmPasswordField.setBorder(BorderFactory.createLineBorder(new Color(206, 212, 218)));
-        contentPanel.add(confirmPasswordField);
+        JLabel timeLabel = new JLabel(now.format(timeFormatter));
+        timeLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        timeLabel.setForeground(LIGHT_TEXT_COLOR);
+        timeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        
+        dateTimePanel.add(dateLabel, BorderLayout.NORTH);
+        dateTimePanel.add(timeLabel, BorderLayout.SOUTH);
+        
+        headerPanel.add(dateTimePanel, BorderLayout.EAST);
+        
+        add(headerPanel, BorderLayout.NORTH);
+    }
+    
+    private void createMainContent() {
+        // Main panel with GridBagLayout for responsive design
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(BACKGROUND_COLOR);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(20, 20, 20, 20);
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        // Create change password panel
+        JPanel passwordPanel = createSectionPanel("Update Password");
+        passwordPanel.setLayout(new BorderLayout());
+        
+        // Create form content
+        JPanel formContent = new JPanel();
+        formContent.setLayout(new BoxLayout(formContent, BoxLayout.Y_AXIS));
+        formContent.setOpaque(false);
+        formContent.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+        
+        // User info section
+        JLabel userInfoLabel = new JLabel("Changing password for: " + userName);
+        userInfoLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        userInfoLabel.setForeground(LIGHT_TEXT_COLOR);
+        userInfoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formContent.add(userInfoLabel);
+        formContent.add(Box.createVerticalStrut(20));
+        
+        // Current password field
+        JPanel currentPassPanel = createPasswordField("Current Password", currentPasswordField = new JPasswordField());
+        formContent.add(currentPassPanel);
+        formContent.add(Box.createVerticalStrut(20));
+        
+        // New password field
+        JPanel newPassPanel = createPasswordField("New Password", newPasswordField = new JPasswordField());
+        formContent.add(newPassPanel);
+        formContent.add(Box.createVerticalStrut(20));
+        
+        // Confirm password field
+        JPanel confirmPassPanel = createPasswordField("Confirm New Password", confirmPasswordField = new JPasswordField());
+        formContent.add(confirmPassPanel);
+        formContent.add(Box.createVerticalStrut(15));
         
         // Status label for feedback
         statusLabel = new JLabel("");
-        statusLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        statusLabel.setForeground(new Color(220, 53, 69)); // Red for errors
-        statusLabel.setBounds(40, yPos + (gap * 3), 390, 20);
-        contentPanel.add(statusLabel);
+        statusLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        statusLabel.setForeground(ERROR_COLOR);
+        statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        formContent.add(statusLabel);
+        formContent.add(Box.createVerticalStrut(25));
         
-        // Buttons
-        RoundedButton updateButton = new RoundedButton("Update Password", 5);
-        updateButton.setBackground(new Color(13, 110, 253)); // #0d6efd - Bootstrap primary blue
+        // Button panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JButton updateButton = new JButton("Update Password");
+        updateButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        updateButton.setBackground(SECONDARY_COLOR);
         updateButton.setForeground(Color.WHITE);
-        updateButton.setFont(new Font("Arial", Font.BOLD, 14));
-        updateButton.setBounds(40, yPos + (gap * 3) + 40, 180, 40);
-        updateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                changePassword();
-            }
-        });
-        contentPanel.add(updateButton);
+        updateButton.setFocusPainted(false);
+        updateButton.addActionListener(e -> changePassword());
         
-        RoundedButton cancelButton = new RoundedButton("Cancel", 5);
-        cancelButton.setBackground(new Color(248, 249, 250)); // Light gray
-        cancelButton.setForeground(new Color(33, 37, 41)); // Dark text
-        cancelButton.setFont(new Font("Arial", Font.PLAIN, 14));
-        cancelButton.setBounds(250, yPos + (gap * 3) + 40, 180, 40);
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Return to user profile
-                navigateToUserProfile();
-            }
-        });
-        contentPanel.add(cancelButton);
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        cancelButton.setBackground(new Color(240, 240, 240));
+        cancelButton.setForeground(TEXT_COLOR);
+        cancelButton.setFocusPainted(false);
+        cancelButton.addActionListener(e -> navigateToUserProfile());
         
-        // Security tips
-        JPanel tipsPanel = new RoundedPanel(5);
-        tipsPanel.setBackground(new Color(248, 249, 250)); // Light gray
-        tipsPanel.setBounds(40, yPos + (gap * 3) + 100, 390, 130);
-        tipsPanel.setLayout(new BoxLayout(tipsPanel, BoxLayout.Y_AXIS));
-        tipsPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        buttonPanel.add(updateButton);
+        buttonPanel.add(cancelButton);
         
-        JLabel tipsTitle = new JLabel("Password Tips:");
-        tipsTitle.setFont(new Font("Arial", Font.BOLD, 13));
-        tipsTitle.setAlignmentX(LEFT_ALIGNMENT);
-        tipsPanel.add(tipsTitle);
-        tipsPanel.add(Box.createVerticalStrut(10));
+        formContent.add(buttonPanel);
+        
+        passwordPanel.add(formContent, BorderLayout.CENTER);
+        
+        // Password tips panel
+        JPanel tipsPanel = createSectionPanel("Password Requirements");
+        tipsPanel.setLayout(new BorderLayout());
+        
+        JPanel tipsContent = new JPanel();
+        tipsContent.setLayout(new BoxLayout(tipsContent, BoxLayout.Y_AXIS));
+        tipsContent.setOpaque(false);
+        tipsContent.setBorder(BorderFactory.createEmptyBorder(15, 25, 25, 25));
+        
+        // Add tips
+        JLabel tipsTitle = new JLabel("For a strong password:");
+        tipsTitle.setFont(new Font("SansSerif", Font.BOLD, 14));
+        tipsTitle.setForeground(TEXT_COLOR);
+        tipsTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tipsContent.add(tipsTitle);
+        tipsContent.add(Box.createVerticalStrut(15));
         
         String[] tips = {
             "• Use at least 8 characters",
             "• Include uppercase and lowercase letters",
             "• Include numbers and special characters",
-            "• Don't reuse passwords from other sites"
+            "• Avoid using personal information",
+            "• Don't reuse passwords from other websites"
         };
         
         for (String tip : tips) {
             JLabel tipLabel = new JLabel(tip);
-            tipLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            tipLabel.setForeground(new Color(73, 80, 87)); // Darker gray
-            tipLabel.setAlignmentX(LEFT_ALIGNMENT);
-            tipsPanel.add(tipLabel);
-            tipsPanel.add(Box.createVerticalStrut(5));
+            tipLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            tipLabel.setForeground(LIGHT_TEXT_COLOR);
+            tipLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            tipsContent.add(tipLabel);
+            tipsContent.add(Box.createVerticalStrut(10));
         }
         
-        contentPanel.add(tipsPanel);
+        tipsPanel.add(tipsContent, BorderLayout.CENTER);
         
-        return mainPanel;
+        // Add components to main panel with responsive layout
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.gridheight = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.7;
+        mainPanel.add(passwordPanel, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.gridheight = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.3;
+        mainPanel.add(tipsPanel, gbc);
+        
+        add(mainPanel, BorderLayout.CENTER);
+    }
+    
+    private JPanel createSectionPanel(String title) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.setBackground(CARD_COLOR);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+            BorderFactory.createEmptyBorder(5, 0, 10, 0)
+        ));
+        
+        // Title bar
+        JPanel titleBar = new JPanel(new BorderLayout());
+        titleBar.setBackground(CARD_COLOR);
+        titleBar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        titleLabel.setForeground(TEXT_COLOR);
+        
+        titleBar.add(titleLabel, BorderLayout.WEST);
+        
+        panel.add(titleBar, BorderLayout.NORTH);
+        
+        return panel;
+    }
+    
+    private JPanel createPasswordField(String labelText, JPasswordField field) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout(0, 5));
+        panel.setOpaque(false);
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(Short.MAX_VALUE, 70));
+        
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("SansSerif", Font.BOLD, 14));
+        label.setForeground(TEXT_COLOR);
+        
+        field.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        field.setPreferredSize(new Dimension(Short.MAX_VALUE, 40));
+        
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
+        
+        return panel;
     }
     
     private void changePassword() {
@@ -365,51 +621,78 @@ public class ChangePassword extends JFrame {
         });
     }
     
-    private void handleNavigation(String destination) {
-        this.dispose(); // Close current window
+    private void handleButtonClick(String buttonName) {
+        System.out.println("Button clicked: " + buttonName);
         
-        switch (destination) {
-            case "Profile":
-                navigateToUserProfile();
-                break;
+        switch (buttonName) {
             case "Dashboard":
+                // Go to Dashboard page
                 SwingUtilities.invokeLater(() -> {
                     Dashbord dashboard = new Dashbord();
                     dashboard.setUserInfo(userName, userId);
                     dashboard.setVisible(true);
+                    this.dispose();
                 });
                 break;
             case "Balance":
+                // Go to Balance page
                 SwingUtilities.invokeLater(() -> {
                     BalancePage balancePage = new BalancePage(userName, userId);
                     balancePage.setVisible(true);
+                    this.dispose();
                 });
                 break;
-            case "Transactions":
-                SwingUtilities.invokeLater(() -> {
-                    Transaction transactionScreen = new Transaction(userId, userName);
-                    transactionScreen.setVisible(true);
-                });
-                break;
-            case "Transfer":
-                SwingUtilities.invokeLater(() -> {
-                    Transfer transferScreen = new Transfer();
-                    transferScreen.setUserInfo(userName, userId);
-                    transferScreen.setVisible(true);
-                });
-                break;
-            case "Withdraw":
-                SwingUtilities.invokeLater(() -> {
-                    Withdraw withdrawScreen = new Withdraw();
-                    withdrawScreen.setUserInfo(userName, userId);
-                    withdrawScreen.setVisible(true);
-                });
+            case "Accounts":
+                // Go to User Profile page
+                navigateToUserProfile();
                 break;
             case "Deposit":
+                // Go to Deposit page
                 SwingUtilities.invokeLater(() -> {
                     Deposite depositScreen = new Deposite();
                     depositScreen.setUserInfo(userName, userId);
                     depositScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Withdraw":
+                // Go to Withdraw page
+                SwingUtilities.invokeLater(() -> {
+                    Withdraw withdrawScreen = new Withdraw();
+                    withdrawScreen.setUserInfo(userName, userId);
+                    withdrawScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Transfers":
+                // Go to transfers page
+                SwingUtilities.invokeLater(() -> {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, userId);
+                    transferScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Transactions":
+                // Go to transactions page
+                SwingUtilities.invokeLater(() -> {
+                    Transaction transactionScreen = new Transaction(userId, userName);
+                    transactionScreen.setVisible(true);
+                    this.dispose();
+                });
+                break;
+            case "Cards":
+                // Cards feature not implemented yet
+                JOptionPane.showMessageDialog(this, "Cards feature coming soon!", "Information", JOptionPane.INFORMATION_MESSAGE);
+                break;
+            case "QR Codes":
+                // Show QR Codes tab on dashboard
+                SwingUtilities.invokeLater(() -> {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, userId);
+                    dashboard.setVisible(true);
+                    // Switch to QR Codes tab handled in dashboard
+                    this.dispose();
                 });
                 break;
             default:
@@ -417,46 +700,38 @@ public class ChangePassword extends JFrame {
         }
     }
     
-    // Custom Rounded Panel class
-    static class RoundedPanel extends JPanel {
+    // Custom gradient panel for backgrounds with rounded corners
+    class RoundedPanel extends JPanel {
         private int cornerRadius;
-
-        public RoundedPanel(int cornerRadius) {
+        private Color gradientStart;
+        private Color gradientEnd;
+        
+        public RoundedPanel(int radius, Color baseColor) {
             super();
-            this.cornerRadius = cornerRadius;
+            this.cornerRadius = radius;
+            this.gradientStart = baseColor;
+            this.gradientEnd = darkenColor(baseColor, 0.2f);
             setOpaque(false);
         }
-
+        
+        private Color darkenColor(Color color, float factor) {
+            float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+            return Color.getHSBColor(hsb[0], hsb[1], Math.max(0, hsb[2] - factor));
+        }
+        
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
-            Graphics2D graphics = (Graphics2D) g;
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.setColor(getBackground());
-            graphics.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
-        }
-    }
-
-    // Custom Rounded Button class
-    static class RoundedButton extends JButton {
-        private int cornerRadius;
-
-        public RoundedButton(String text, int cornerRadius) {
-            super(text);
-            this.cornerRadius = cornerRadius;
-            setContentAreaFilled(false);
-            setFocusPainted(false);
-            setBorderPainted(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
-            super.paintComponent(g2);
-            g2.dispose();
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            GradientPaint gradient = new GradientPaint(
+                0, 0, gradientStart,
+                0, getHeight(), gradientEnd
+            );
+            g2d.setPaint(gradient);
+            g2d.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
+            g2d.dispose();
         }
     }
 }

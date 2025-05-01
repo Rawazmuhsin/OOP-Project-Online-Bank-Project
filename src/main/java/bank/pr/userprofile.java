@@ -27,7 +27,7 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
-public class UserProfile extends JFrame {
+ class UserProfile extends JFrame {
     
     private String userName = ""; // Will be set via setUserInfo
     private int userId = 0; // Will be set via setUserInfo
