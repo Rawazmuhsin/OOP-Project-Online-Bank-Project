@@ -4,22 +4,32 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-
+import java.util.List;
+import java.awt.FlowLayout;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -27,196 +37,575 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class Withdraw extends JFrame {
+    
+    private static final long serialVersionUID = 1L;
+    
+    // Colors scheme - same as Dashboard and Transfer
+    private static final Color PRIMARY_COLOR = new Color(20, 30, 70);
+    private static final Color SECONDARY_COLOR = new Color(30, 144, 255);
+    private static final Color ACCENT_COLOR = new Color(255, 165, 0);
+    private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
+    private static final Color CARD_COLOR = new Color(255, 255, 255);
+    private static final Color TEXT_COLOR = new Color(50, 50, 50);
+    private static final Color LIGHT_TEXT_COLOR = new Color(120, 120, 120);
+    private static final Color SUCCESS_COLOR = new Color(40, 167, 69);
+    private static final Color ERROR_COLOR = new Color(220, 53, 69);
+    
     private JTextField amountField;
     private JTextArea descArea;
-    private JPanel quickButtons;
-    private int accountId; 
+    private int accountId;
     private String userName;
     private JLabel currentAccountLabel;
-    private JLabel currentBalanceLabel; 
+    private JLabel currentBalanceLabel;
+    private JPanel sidebarPanel;
+    private List<JButton> menuButtons = new ArrayList<>();
+    private JRadioButton bankTransferRadio;
+    private JRadioButton debitCardRadio;
+    
     public Withdraw() {
-        setTitle("Withdraw Funds -  Kurdish - O - Banking (KOB)");
-        setSize(900, 600);
+        // Set look and feel to be more modern
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        setTitle("Withdraw Funds - Kurdish-O-Banking (KOB)");
+        setSize(1100, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-
-        // Sidebar
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(new Color(20, 25, 45));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(200, getHeight()));
-
-        JLabel titleLabel = new JLabel("  Kurdish - O - Banking");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
-
-        String[] menuItems = {"Withdraw", "Dashboard", "Accounts", "Deposit", "Transfer", "Transactions"};
-
-        sidebar.add(titleLabel);
-        for (String item : menuItems) {
-            JButton button = new JButton(item);
-            button.setAlignmentX(Component.LEFT_ALIGNMENT);
-            button.setMaximumSize(new Dimension(180, 40));
-            button.setBackground(item.equals("Withdraw") ? new Color(40, 45, 65) : new Color(20, 25, 45));
-            button.setForeground(Color.WHITE);
-            button.setFocusPainted(false);
-            button.setBorderPainted(false);
-            button.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
+        getContentPane().setBackground(BACKGROUND_COLOR);
+        
+        // Create components
+        createSidebar();
+        createHeaderPanel();
+        createMainContent();
+        
+        // Set icon if available
+        try {
+            setIconImage(new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png").getImage());
+        } catch (Exception e) {
+            System.err.println("Error loading logo: " + e.getMessage());
+        }
+    }
+    
+    private void createSidebar() {
+        sidebarPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Create gradient background
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, PRIMARY_COLOR, 
+                    0, getHeight(), new Color(10, 20, 50)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+                g2d.dispose();
+            }
+        };
+        
+        sidebarPanel.setPreferredSize(new Dimension(240, getHeight()));
+        sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
+        
+        // Logo panel
+        JPanel logoPanel = new JPanel();
+        logoPanel.setOpaque(false);
+        logoPanel.setLayout(new BorderLayout());
+        logoPanel.setBorder(BorderFactory.createEmptyBorder(25, 15, 25, 15));
+        
+        JLabel bankName = new JLabel("Kurdish-O-Banking");
+        bankName.setForeground(Color.WHITE);
+        bankName.setFont(new Font("SansSerif", Font.BOLD, 18));
+        
+        JLabel tagline = new JLabel("Your Future, Your Bank");
+        tagline.setForeground(new Color(200, 200, 200));
+        tagline.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        
+        JPanel namePanel = new JPanel();
+        namePanel.setOpaque(false);
+        namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
+        namePanel.add(bankName);
+        namePanel.add(Box.createVerticalStrut(3));
+        namePanel.add(tagline);
+        
+        logoPanel.add(namePanel, BorderLayout.CENTER);
+        
+        // Try to add logo image if available
+        try {
+            ImageIcon logoIcon = new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png");
+            java.awt.Image image = logoIcon.getImage().getScaledInstance(40, 40, java.awt.Image.SCALE_SMOOTH);
+            logoIcon = new ImageIcon(image);
+            JLabel logoLabel = new JLabel(logoIcon);
+            logoPanel.add(logoLabel, BorderLayout.WEST);
+        } catch (Exception e) {
+            System.err.println("Error loading small logo: " + e.getMessage());
+        }
+        
+        sidebarPanel.add(logoPanel);
+        
+        // Add separator
+        JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
+        separator.setForeground(new Color(70, 80, 120));
+        separator.setBackground(new Color(70, 80, 120));
+        separator.setMaximumSize(new Dimension(220, 1));
+        sidebarPanel.add(separator);
+        sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        // Menu items with icons - Same as Dashboard for consistency
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
+        
+        for (int i = 0; i < menuItems.length; i++) {
+            JButton button = createMenuButton(menuItems[i], iconNames[i]);
             
-            // Add action listener to each button
+            final String item = menuItems[i];
             button.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     handleButtonClick(item);
+                    updateSelectedButton(item);
                 }
             });
             
-            sidebar.add(button);
+            sidebarPanel.add(button);
+            menuButtons.add(button);
+            sidebarPanel.add(Box.createVerticalStrut(5));
         }
-
-        // Main content
-        JPanel content = new JPanel();
-        content.setBackground(new Color(245, 247, 251));
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
-
-        JLabel title = new JLabel("Withdraw Funds");
-        title.setFont(new Font("SansSerif", Font.BOLD, 22));
-        JLabel subtitle = new JLabel("Withdraw money from your account");
-        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        subtitle.setForeground(Color.GRAY);
-
-        content.add(title);
-        content.add(Box.createVerticalStrut(5));
-        content.add(subtitle);
-        content.add(Box.createVerticalStrut(15));
         
-        // Add current account ID and balance display
-        currentAccountLabel = new JLabel("Current Account ID: " + accountId);
-        currentAccountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        currentAccountLabel.setForeground(new Color(44, 62, 80));
-        content.add(currentAccountLabel);
+        // Set Withdraw as initially selected
+        updateSelectedButton("Withdraw");
+        
+        // Add logout at bottom
+        sidebarPanel.add(Box.createVerticalGlue());
+        
+        JSeparator bottomSeparator = new JSeparator(SwingConstants.HORIZONTAL);
+        bottomSeparator.setForeground(new Color(70, 80, 120));
+        bottomSeparator.setBackground(new Color(70, 80, 120));
+        bottomSeparator.setMaximumSize(new Dimension(220, 1));
+        sidebarPanel.add(bottomSeparator);
+        
+        JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int choice = JOptionPane.showConfirmDialog(
+                    Withdraw.this,
+                    "Are you sure you want to logout?",
+                    "Logout Confirmation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                
+                if (choice == JOptionPane.YES_OPTION) {
+                    dispose();
+                    // Open login page
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            LoginUI loginPage = new LoginUI();
+                            loginPage.setVisible(true);
+                        }
+                    });
+                }
+            }
+        });
+        
+        sidebarPanel.add(logoutButton);
+        sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        add(sidebarPanel, BorderLayout.WEST);
+    }
+    
+    private JButton createMenuButton(String text, String iconName) {
+        JButton button = new JButton(text);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setIconTextGap(10);
+        button.setMaximumSize(new Dimension(220, 45));
+        button.setPreferredSize(new Dimension(220, 45));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        button.setForeground(Color.WHITE);
+        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        
+        // Try to load icon if available
+        try {
+            ImageIcon icon = new ImageIcon("icons/" + iconName + ".png");
+            java.awt.Image image = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
+            icon = new ImageIcon(image);
+            button.setIcon(icon);
+        } catch (Exception e) {
+            // If icon not found, use text only
+            System.err.println("Icon not found: " + iconName);
+        }
+        
+        // Add hover effect
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!button.isSelected()) {
+                    button.setBackground(new Color(45, 55, 95));
+                    button.setContentAreaFilled(true);
+                }
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!button.isSelected()) {
+                    button.setContentAreaFilled(false);
+                }
+            }
+        });
+        
+        return button;
+    }
+    
+    private void updateSelectedButton(String selectedItem) {
+        for (JButton button : menuButtons) {
+            if (button.getText().equals(selectedItem)) {
+                button.setBackground(SECONDARY_COLOR);
+                button.setContentAreaFilled(true);
+                button.setFont(new Font("SansSerif", Font.BOLD, 14));
+                button.putClientProperty("selected", true);
+            } else {
+                button.setContentAreaFilled(false);
+                button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                button.putClientProperty("selected", false);
+            }
+        }
+    }
+    
+    private void createHeaderPanel() {
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setBackground(CARD_COLOR);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
+            BorderFactory.createEmptyBorder(15, 25, 15, 25)
+        ));
+        
+        // Title and description
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setOpaque(false);
+        
+        JLabel titleLabel = new JLabel("Withdraw Funds");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLabel.setForeground(TEXT_COLOR);
+        
+        JLabel subtitleLabel = new JLabel("Withdraw money from your account");
+        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        subtitleLabel.setForeground(LIGHT_TEXT_COLOR);
+        
+        titlePanel.add(titleLabel, BorderLayout.NORTH);
+        titlePanel.add(subtitleLabel, BorderLayout.SOUTH);
+        
+        headerPanel.add(titlePanel, BorderLayout.WEST);
+        
+        // Account info on the right
+        JPanel accountPanel = new JPanel();
+        accountPanel.setLayout(new BoxLayout(accountPanel, BoxLayout.Y_AXIS));
+        accountPanel.setOpaque(false);
+        
+        currentAccountLabel = new JLabel("Account ID: ");
+        currentAccountLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        currentAccountLabel.setForeground(LIGHT_TEXT_COLOR);
+        currentAccountLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
         
         currentBalanceLabel = new JLabel("Available Balance: Loading...");
         currentBalanceLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-        currentBalanceLabel.setForeground(new Color(44, 62, 80));
-        content.add(currentBalanceLabel);
-        content.add(Box.createVerticalStrut(15));
-
-        // Withdraw Method
-        JPanel methodPanel = new JPanel(new GridLayout(1, 2, 20, 10));
-        methodPanel.setOpaque(false);
-
-        JRadioButton bankTransfer = new JRadioButton();
-        JRadioButton card = new JRadioButton();
-
+        currentBalanceLabel.setForeground(TEXT_COLOR);
+        currentBalanceLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        
+        accountPanel.add(currentAccountLabel);
+        accountPanel.add(Box.createVerticalStrut(4));
+        accountPanel.add(currentBalanceLabel);
+        
+        headerPanel.add(accountPanel, BorderLayout.EAST);
+        
+        add(headerPanel, BorderLayout.NORTH);
+    }
+    
+    private void createMainContent() {
+        // Main content panel
+        JPanel mainContent = new JPanel();
+        mainContent.setLayout(new GridBagLayout());
+        mainContent.setBackground(BACKGROUND_COLOR);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(15, 15, 15, 15);
+        gbc.fill = GridBagConstraints.BOTH;
+        
+        // Withdraw method section
+        JPanel withdrawMethodPanel = createSectionPanel("Withdraw Method");
+        withdrawMethodPanel.setLayout(new BorderLayout());
+        
+        JPanel methodContent = new JPanel();
+        methodContent.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+        methodContent.setOpaque(false);
+        
         ButtonGroup methodGroup = new ButtonGroup();
-        methodGroup.add(bankTransfer);
-        methodGroup.add(card);
-        bankTransfer.setSelected(true);
-
-        methodPanel.add(wrapRadioPanel("Bank Account", "2–3 business days", bankTransfer));
-        methodPanel.add(wrapRadioPanel("Debit Card", "Instant withdrawal", card));
-
-        content.add(methodPanel);
-        content.add(Box.createVerticalStrut(30));
-
-        // Amount Input
+        bankTransferRadio = new JRadioButton();
+        debitCardRadio = new JRadioButton();
+        methodGroup.add(bankTransferRadio);
+        methodGroup.add(debitCardRadio);
+        bankTransferRadio.setSelected(true); // Default selection
+        
+        JPanel bankTransferCard = createRadioCard("Bank Account", "2–3 business days", bankTransferRadio);
+        JPanel debitCardCard = createRadioCard("Debit Card", "Instant withdrawal", debitCardRadio);
+        
+        methodContent.add(bankTransferCard);
+        methodContent.add(debitCardCard);
+        
+        withdrawMethodPanel.add(methodContent, BorderLayout.CENTER);
+        
+        // Amount section
+        JPanel amountPanel = createSectionPanel("Withdraw Amount");
+        amountPanel.setLayout(new BorderLayout());
+        
+        JPanel amountContent = new JPanel();
+        amountContent.setLayout(new BoxLayout(amountContent, BoxLayout.Y_AXIS));
+        amountContent.setOpaque(false);
+        amountContent.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
         JLabel amountLabel = new JLabel("Amount");
         amountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        amountLabel.setForeground(TEXT_COLOR);
+        amountLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel amountInfoLabel = new JLabel("Enter the amount you want to withdraw");
+        amountInfoLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        amountInfoLabel.setForeground(LIGHT_TEXT_COLOR);
+        amountInfoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
         amountField = new JTextField();
-        amountField.setPreferredSize(new Dimension(200, 30));
-
-        content.add(amountLabel);
-        content.add(Box.createVerticalStrut(5));
-        content.add(amountField);
-        content.add(Box.createVerticalStrut(10));
-
-        // Quick Amount Buttons
+        amountField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        amountField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        amountField.setMaximumSize(new Dimension(800, 40));
+        amountField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Quick amount buttons
         JLabel quickLabel = new JLabel("Quick amounts:");
         quickLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        quickButtons = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        quickButtons.setOpaque(false);
+        quickLabel.setForeground(LIGHT_TEXT_COLOR);
+        quickLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+       JPanel quickButtons = new JPanel();
+quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
 
-        String[] quicks = {"$100", "$250", "$500", "$1000"};
-        for (String amt : quicks) {
-            JButton btn = new JButton(amt);
-            btn.setFocusPainted(false);
-            btn.setBackground(new Color(220, 255, 230));
-            btn.setForeground(new Color(0, 128, 0));
+        quickButtons.setOpaque(false);
+        quickButtons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        String[] amounts = {"$100", "$250", "$500", "$1000"};
+        for (String amount : amounts) {
+            JButton quickButton = new JButton(amount);
+            quickButton.setBackground(new Color(230, 245, 230));
+            quickButton.setForeground(new Color(0, 128, 0));
+            quickButton.setFocusPainted(false);
+            quickButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            quickButton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 230, 200)),
+                BorderFactory.createEmptyBorder(5, 10, 5, 10)
+            ));
             
-            // Add action listener to quick amount buttons
-            btn.addActionListener(new ActionListener() {
+            final String amountValue = amount;
+            quickButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    amountField.setText(amt.replace("$", ""));
+                    amountField.setText(amountValue.replace("$", ""));
                 }
             });
             
-            quickButtons.add(btn);
+            quickButtons.add(quickButton);
         }
-
-        content.add(quickLabel);
-        content.add(quickButtons);
-        content.add(Box.createVerticalStrut(20));
-
-        // Description
-        JLabel descLabel = new JLabel("Description (Optional)");
-        descLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        descArea = new JTextArea(3, 30);
-        descArea.setLineWrap(true);
-        descArea.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-
-        content.add(descLabel);
-        content.add(descArea);
-        content.add(Box.createVerticalStrut(30));
-
-        // Submit Button
-        JButton submitBtn = new JButton("Withdraw Funds");
-        submitBtn.setBackground(new Color(60, 130, 255));
-        submitBtn.setForeground(Color.WHITE);
-        submitBtn.setFocusPainted(false);
-        submitBtn.setPreferredSize(new Dimension(300, 40));
-        submitBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
         
-        // Add action listener to submit button
-        submitBtn.addActionListener(new ActionListener() {
+        amountContent.add(amountLabel);
+        amountContent.add(Box.createVerticalStrut(5));
+        amountContent.add(amountInfoLabel);
+        amountContent.add(Box.createVerticalStrut(15));
+        amountContent.add(amountField);
+        amountContent.add(Box.createVerticalStrut(15));
+        amountContent.add(quickLabel);
+        amountContent.add(Box.createVerticalStrut(5));
+        amountContent.add(quickButtons);
+        
+        amountPanel.add(amountContent, BorderLayout.CENTER);
+        
+        // Description section
+        JPanel descriptionPanel = createSectionPanel("Description");
+        descriptionPanel.setLayout(new BorderLayout());
+        
+        JPanel descContent = new JPanel();
+        descContent.setLayout(new BoxLayout(descContent, BoxLayout.Y_AXIS));
+        descContent.setOpaque(false);
+        descContent.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        JLabel descLabel = new JLabel("Description (Optional)");
+        descLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        descLabel.setForeground(TEXT_COLOR);
+        descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel descInfoLabel = new JLabel("Add a note to your withdrawal for your records");
+        descInfoLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        descInfoLabel.setForeground(LIGHT_TEXT_COLOR);
+        descInfoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        descArea = new JTextArea(4, 30);
+        descArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        descArea.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        descArea.setMaximumSize(new Dimension(800, 100));
+        descArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Submit button
+        JButton withdrawButton = new JButton("Withdraw Funds");
+        withdrawButton.setBackground(SECONDARY_COLOR);
+        withdrawButton.setForeground(Color.WHITE);
+        withdrawButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        withdrawButton.setFocusPainted(false);
+        withdrawButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
+        withdrawButton.setMaximumSize(new Dimension(800, 50));
+        withdrawButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Add hover effect
+        withdrawButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                withdrawButton.setBackground(new Color(25, 118, 210));
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                withdrawButton.setBackground(SECONDARY_COLOR);
+            }
+        });
+        
+        withdrawButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 handleWithdrawSubmit();
             }
         });
-
-        content.add(submitBtn);
-
-        // Add to Frame
-        add(sidebar, BorderLayout.WEST);
-        add(new JScrollPane(content), BorderLayout.CENTER);
-        setVisible(true);
+        
+        descContent.add(descLabel);
+        descContent.add(Box.createVerticalStrut(5));
+        descContent.add(descInfoLabel);
+        descContent.add(Box.createVerticalStrut(15));
+        descContent.add(descArea);
+        descContent.add(Box.createVerticalStrut(30));
+        descContent.add(withdrawButton);
+        
+        descriptionPanel.add(descContent, BorderLayout.CENTER);
+        
+        // Add panels to main content with GridBagLayout
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.2;
+        mainContent.add(withdrawMethodPanel, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.3;
+        mainContent.add(amountPanel, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0.5;
+        mainContent.add(descriptionPanel, gbc);
+        
+        // Add main content to frame with scroll pane
+        add(new JScrollPane(mainContent), BorderLayout.CENTER);
     }
-
-    private JPanel wrapRadioPanel(String title, String subtitle, JRadioButton button) {
-        JPanel panel = new JPanel(new BorderLayout());
+    
+    private JPanel createSectionPanel(String title) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout());
+        panel.setBackground(CARD_COLOR);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(180, 180, 255)),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
+            BorderFactory.createEmptyBorder(5, 0, 10, 0)
         ));
-        panel.setBackground(Color.WHITE);
-        panel.setPreferredSize(new Dimension(200, 70));
-
-        button.setText("<html><b>" + title + "</b><br><span style='font-size:10px;color:gray'>" + subtitle + "</span></html>");
-        button.setOpaque(false);
-        button.setFocusPainted(false);
-        button.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        panel.add(button, BorderLayout.CENTER);
+        
+        // Title bar
+        JPanel titleBar = new JPanel(new BorderLayout());
+        titleBar.setBackground(CARD_COLOR);
+        titleBar.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        titleLabel.setForeground(TEXT_COLOR);
+        
+        titleBar.add(titleLabel, BorderLayout.WEST);
+        
+        panel.add(titleBar, BorderLayout.NORTH);
+        
+        return panel;
+    }
+    
+    private JPanel createRadioCard(String title, String description, JRadioButton radio) {
+        JPanel panel = new RoundedPanel(15, Color.WHITE);
+        panel.setPreferredSize(new Dimension(240, 100));
+        panel.setLayout(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        radio.setOpaque(false);
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        titleLabel.setForeground(TEXT_COLOR);
+        
+        JLabel descLabel = new JLabel(description);
+        descLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        descLabel.setForeground(LIGHT_TEXT_COLOR);
+        
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
+        
+        textPanel.add(titleLabel);
+        textPanel.add(Box.createVerticalStrut(5));
+        textPanel.add(descLabel);
+        
+        panel.add(radio, BorderLayout.WEST);
+        panel.add(textPanel, BorderLayout.CENTER);
+        
+        // Add mouse listener to make the whole panel clickable
+        panel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                radio.setSelected(true);
+            }
+        });
+        
         return panel;
     }
     
@@ -227,7 +616,7 @@ public class Withdraw extends JFrame {
         
         // Update the account ID label when user info is set
         if (currentAccountLabel != null) {
-            currentAccountLabel.setText("Current Account ID: " + accountId);
+            currentAccountLabel.setText("Account ID: " + accountId);
         }
         
         // Load and display current balance
@@ -278,46 +667,86 @@ public class Withdraw extends JFrame {
         
         switch (buttonName) {
             case "Dashboard":
-                SwingUtilities.invokeLater(() -> {
-                    Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, accountId);
-                    dashboard.setVisible(true);
-                    this.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, accountId);
+                        dashboard.setVisible(true);
+                        dispose();
+                    }
+                });
+                break;
+            case "Balance":
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        BalancePage balancePage = new BalancePage(userName, accountId);
+                        balancePage.setVisible(true);
+                        dispose();
+                    }
                 });
                 break;
             case "Deposit":
-                SwingUtilities.invokeLater(() -> {
-                    Deposite depositScreen = new Deposite();
-                    depositScreen.setUserInfo(userName, accountId);
-                    depositScreen.setVisible(true);
-                    this.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Deposite depositScreen = new Deposite();
+                        depositScreen.setUserInfo(userName, accountId);
+                        depositScreen.setVisible(true);
+                        dispose();
+                    }
                 });
                 break;
             case "Withdraw":
                 // Stay on withdraw page
                 break;
-            case "Transfer":
-                SwingUtilities.invokeLater(() -> {
-                    Transfer transferScreen = new Transfer();
-                    transferScreen.setUserInfo(userName, accountId);
-                    transferScreen.setVisible(true);
-                    this.dispose();
+            case "Transfers":
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Transfer transferScreen = new Transfer();
+                        transferScreen.setUserInfo(userName, accountId);
+                        transferScreen.setVisible(true);
+                        dispose();
+                    }
                 });
                 break;
             case "Transactions":
-                SwingUtilities.invokeLater(() -> {
-                    Transaction transactionScreen = new Transaction(accountId, userName);
-                    transactionScreen.setVisible(true);
-                    this.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Transaction transactionScreen = new Transaction(accountId, userName);
+                        transactionScreen.setVisible(true);
+                        dispose();
+                    }
                 });
                 break;
             case "Accounts":
-                SwingUtilities.invokeLater(() -> {
-                    UserProfile userProfile = new UserProfile();
-                    userProfile.setUserInfo(userName, accountId);
-                    userProfile.setVisible(true);
-                    this.dispose();
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        UserProfile userProfile = new UserProfile();
+                        userProfile.setUserInfo(userName, accountId);
+                        userProfile.setVisible(true);
+                        dispose();
+                    }
                 });
+                break;
+                case "QR Codes":
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, accountId);
+                        dashboard.setVisible(true);
+                        // Navigate to QR Codes tab on dashboard
+                        dispose();
+                    }
+                });
+                break;
+            case "Cards":
+                JOptionPane.showMessageDialog(this, "Cards feature coming soon!");
                 break;
             default:
                 break;
@@ -326,8 +755,8 @@ public class Withdraw extends JFrame {
     
     // Method to handle withdraw submission
     private void handleWithdrawSubmit() {
-        String amount = amountField.getText();
-        String description = descArea.getText();
+        String amount = amountField.getText().trim();
+        String description = descArea.getText().trim();
         
         if (amount.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter an amount to withdraw", "Error", JOptionPane.ERROR_MESSAGE);
@@ -341,30 +770,73 @@ public class Withdraw extends JFrame {
                 return;
             }
             
-            boolean success = saveTransaction(amountValue, description);
+            // Confirm withdrawal with custom dialog
+            String message = String.format(
+                "<html><div style='text-align: center;'>" +
+                "<h2>Confirm Withdrawal</h2>" +
+                "<p>You are about to withdraw:</p>" +
+                "<h3 style='color: #1E90FF;'>$%.2f</h3>" +
+                "<p>Method: <b>%s</b></p>" +
+                "<p>Please confirm this transaction.</p>" +
+                "</div></html>",
+                amountValue, 
+                bankTransferRadio.isSelected() ? "Bank Transfer" : "Debit Card"
+            );
             
-            if (success) {
-                JOptionPane.showMessageDialog(this, 
-                        "Withdrawal of $" + amountValue + " has been submitted and is pending approval.", 
-                        "Withdrawal Pending", 
-                        JOptionPane.INFORMATION_MESSAGE);
+            int confirmResult = JOptionPane.showConfirmDialog(
+                this,
+                message,
+                "Confirm Withdrawal",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (confirmResult == JOptionPane.YES_OPTION) {
+                boolean success = saveTransaction(amountValue, description);
                 
-                SwingUtilities.invokeLater(() -> {
-                    Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, accountId);
-                    dashboard.setVisible(true);
-                    this.dispose();
-                });
-            } else {
-                JOptionPane.showMessageDialog(this, 
-                        "Failed to process withdrawal. Please try again.", 
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+                if (success) {
+                    String successMessage = String.format(
+                        "<html><div style='text-align: center;'>" +
+                        "<h2 style='color: #28A745;'>Withdrawal Pending</h2>" +
+                        "<p>Your withdrawal of <b>$%.2f</b> has been submitted</p>" +
+                        "<p>Transaction ID: <b>%s</b></p>" +
+                        "<p>Status: <b>Pending Approval</b></p>" +
+                        "</div></html>",
+                        amountValue, generateTransactionId()
+                    );
+                    
+                    JOptionPane.showMessageDialog(
+                        this,
+                        successMessage,
+                        "Withdrawal Submitted",
+                        JOptionPane.INFORMATION_MESSAGE
+                    );
+                    
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            Dashbord dashboard = new Dashbord();
+                            dashboard.setUserInfo(userName, accountId);
+                            dashboard.setVisible(true);
+                            dispose();
+                        }
+                    });
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                            "Failed to process withdrawal. Please try again later.", 
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
             
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    // Generate a transaction ID
+    private String generateTransactionId() {
+        return "WTH" + System.currentTimeMillis() % 10000000;
     }
     
     // Method to save transaction
@@ -393,7 +865,10 @@ public class Withdraw extends JFrame {
                 
                 if (currentBalance < amount) {
                     System.out.println("ERROR: Insufficient funds");
-                    JOptionPane.showMessageDialog(this, "Insufficient funds. Current balance: $" + currentBalance, "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, 
+                        "Insufficient funds. Current balance: $" + String.format("%.2f", currentBalance), 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
                     return false;
                 }
             } else {
@@ -433,8 +908,38 @@ public class Withdraw extends JFrame {
             }
         }
     }
+    
+    // Custom rounded panel class - same as in Dashboard
+    class RoundedPanel extends JPanel {
+        private int cornerRadius;
+        private Color backgroundColor;
+        
+        public RoundedPanel(int radius, Color bgColor) {
+            super();
+            this.cornerRadius = radius;
+            this.backgroundColor = bgColor;
+            setOpaque(false);
+        }
+        
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(backgroundColor);
+            g2d.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
+            g2d.dispose();
+        }
+    }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(Withdraw::new);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Withdraw withdraw = new Withdraw();
+                withdraw.setUserInfo("John Doe", 12345);
+                withdraw.setVisible(true);
+            }
+        });
     }
 }
