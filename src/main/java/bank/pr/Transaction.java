@@ -33,7 +33,6 @@ import java.util.List;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
-// Delete or alias the Font import
 import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
@@ -433,6 +432,8 @@ public class Transaction extends JFrame {
         exportButton.setForeground(Color.WHITE);
         exportButton.setFocusPainted(false);
         exportButton.addActionListener(e -> exportTransactionsToPDF());
+        exportButton.setOpaque(true);  
+        exportButton.setBorderPainted(false); 
         
         // Refresh button
         JButton refreshButton = new JButton("Refresh");
@@ -441,6 +442,8 @@ public class Transaction extends JFrame {
         refreshButton.setForeground(Color.WHITE);
         refreshButton.setFocusPainted(false);
         refreshButton.addActionListener(e -> refreshTransactionData());
+        refreshButton.setOpaque(true);  
+        refreshButton.setBorderPainted(false);
         
         actionPanel.add(exportButton);
         actionPanel.add(refreshButton);

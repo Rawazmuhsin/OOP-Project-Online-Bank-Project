@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.awt.FlowLayout;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -406,6 +407,8 @@ public class BalancePage extends JFrame {
         refreshButton.setForeground(Color.WHITE);
         refreshButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         refreshButton.setPreferredSize(new Dimension(30, 30));
+        refreshButton.setOpaque(true);  
+        refreshButton.setBorderPainted(false);
         refreshButton.addActionListener(e -> {
             userAccounts = fetchUserAccounts();
             DefaultComboBoxModel<Account> newModel = new DefaultComboBoxModel<>();
@@ -513,7 +516,7 @@ public class BalancePage extends JFrame {
         JButton historyButton = createCompactActionButton("History", "View all transactions");
         JButton transferButton = createCompactActionButton("Transfer", "Move funds between accounts");
         
-        statementButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Statement feature coming soon!"));
+        statementButton.addActionListener(e -> generateStatementReport());
         exportButton.addActionListener(e -> exportToPDF());
         historyButton.addActionListener(e -> handleButtonClick("Transactions"));
         transferButton.addActionListener(e -> handleButtonClick("Transfers"));
@@ -924,6 +927,290 @@ private void updateBalanceDisplay() {
         return panel;
     }
     
+
+    private void generateStatementReport() {
+        // Check if account is selected
+        if (accountComboBox.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, 
+                    "Please select an account first", 
+                    "Statement Error", 
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        Account selectedAccount = (Account) accountComboBox.getSelectedItem();
+        
+        // Create a dialog for statement generation
+        JFrame statementDialog = new JFrame("Generate Statement");
+        statementDialog.setSize(500, 400);
+        statementDialog.setLocationRelativeTo(this);
+        statementDialog.setLayout(new BorderLayout());
+        
+        // Create main panel with padding
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(Color.WHITE);
+        
+        // Add title
+        JLabel titleLabel = new JLabel("Report Generation");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        
+        // Create content panel
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(Color.WHITE);
+        
+        // Add info icon and success message
+        JPanel infoPanel = new JPanel(new BorderLayout(10, 0));
+        infoPanel.setBackground(Color.WHITE);
+        
+        // Create info icon
+        JLabel infoIcon = new JLabel();
+        try {
+            ImageIcon icon = new ImageIcon("icons/info.png");
+            java.awt.Image image = icon.getImage().getScaledInstance(32, 32, java.awt.Image.SCALE_SMOOTH);
+            icon = new ImageIcon(image);
+            infoIcon.setIcon(icon);
+        } catch (Exception ex) {
+            // Use text as fallback
+            infoIcon.setText("ⓘ");
+            infoIcon.setFont(new Font("SansSerif", Font.BOLD, 24));
+            infoIcon.setForeground(new Color(30, 144, 255));
+        }
+        
+        JPanel messagePanel = new JPanel();
+        messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
+        messagePanel.setBackground(Color.WHITE);
+        
+        JLabel successLabel = new JLabel("Report Generated Successfully");
+        successLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        successLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Report type and date range
+        JLabel typeLabel = new JLabel("Report Type: Transaction Summary");
+        typeLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        typeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel dateLabel = new JLabel("Date Range: Last 7 Days");
+        dateLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        dateLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Add summary info
+        JLabel summaryLabel = new JLabel("Summary:");
+        summaryLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        summaryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Calculate total deposits and withdrawals for the account
+        double totalDeposits = 0.0;
+        double totalWithdrawals = 0.0;
+        
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT transaction_type, SUM(amount) as total " +
+                         "FROM transactions " +
+                         "WHERE account_id = ? AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) " +
+                         "GROUP BY transaction_type";
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, selectedAccount.getAccountId());
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                String type = rs.getString("transaction_type").toUpperCase();
+                double amount = rs.getDouble("total");
+                
+                if (type.contains("DEPOSIT")) {
+                    totalDeposits += amount;
+                } else if (type.contains("WITHDRAW") || type.contains("WITHDRAWAL")) {
+                    totalWithdrawals += amount;
+                }
+            }
+        } catch (SQLException ex) {
+            System.err.println("Error calculating transaction totals: " + ex.getMessage());
+        }
+        
+        // Get current balance and pending withdrawals
+        double pendingWithdrawals = getPendingWithdrawalsAmount(selectedAccount.getAccountId());
+        double currentBalance = selectedAccount.getBalance();
+        double netBalance = currentBalance - pendingWithdrawals;
+        
+        JLabel depositsLabel = new JLabel("- Total Deposits: $" + String.format("%.2f", totalDeposits));
+        depositsLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        depositsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel withdrawalsLabel = new JLabel("- Total Withdrawals: $" + String.format("%.2f", totalWithdrawals));
+        withdrawalsLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        withdrawalsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel balanceLabel = new JLabel("- Net Balance: $" + String.format("%.2f", netBalance));
+        balanceLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        balanceLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        JLabel pendingLabel = new JLabel("- Pending Transactions: " + (pendingWithdrawals > 0 ? "1" : "0"));
+        pendingLabel.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        pendingLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Get total number of transactions
+        int totalTransactions = 0;
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            String query = "SELECT COUNT(*) as count FROM transactions " +
+                         "WHERE account_id = ? AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, selectedAccount.getAccountId());
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                totalTransactions = rs.getInt("count");
+            }
+        } catch (SQLException ex) {
+            System.err.println("Error counting transactions: " + ex.getMessage());
+        }
+        
+        JLabel totalLabel = new JLabel("Total Transactions: " + totalTransactions);
+        totalLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        totalLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Add everything to the message panel
+        messagePanel.add(successLabel);
+        messagePanel.add(Box.createVerticalStrut(5));
+        messagePanel.add(typeLabel);
+        messagePanel.add(Box.createVerticalStrut(2));
+        messagePanel.add(dateLabel);
+        messagePanel.add(Box.createVerticalStrut(10));
+        messagePanel.add(summaryLabel);
+        messagePanel.add(Box.createVerticalStrut(2));
+        messagePanel.add(depositsLabel);
+        messagePanel.add(Box.createVerticalStrut(2));
+        messagePanel.add(withdrawalsLabel);
+        messagePanel.add(Box.createVerticalStrut(2));
+        messagePanel.add(balanceLabel);
+        messagePanel.add(Box.createVerticalStrut(2));
+        messagePanel.add(pendingLabel);
+        messagePanel.add(Box.createVerticalStrut(10));
+        messagePanel.add(totalLabel);
+        
+        infoPanel.add(infoIcon, BorderLayout.WEST);
+        infoPanel.add(messagePanel, BorderLayout.CENTER);
+        
+        contentPanel.add(infoPanel);
+        
+        // Add OK button
+        JButton okButton = new JButton("OK");
+        okButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        okButton.setFocusPainted(false);
+        okButton.setPreferredSize(new Dimension(100, 35));
+        okButton.setBackground(SECONDARY_COLOR);
+        okButton.setForeground(Color.WHITE);
+        okButton.setBorderPainted(false);
+        okButton.addActionListener(event -> statementDialog.dispose());
+        
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.add(okButton);
+        
+        contentPanel.add(Box.createVerticalStrut(20));
+        contentPanel.add(buttonPanel);
+        
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
+        
+        // Create financial overview panel
+        JPanel overviewPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        overviewPanel.setBackground(new Color(240, 240, 240));
+        overviewPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // Net Balance box
+        JPanel netBalancePanel = new JPanel();
+        netBalancePanel.setLayout(new BoxLayout(netBalancePanel, BoxLayout.Y_AXIS));
+        netBalancePanel.setBackground(new Color(230, 240, 255));
+        netBalancePanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        JLabel netBalanceTitle = new JLabel("Net Balance");
+        netBalanceTitle.setFont(new Font("SansSerif", Font.BOLD, 14));
+        netBalanceTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JLabel netBalanceValue = new JLabel("$" + String.format("%.2f", netBalance));
+        netBalanceValue.setFont(new Font("SansSerif", Font.BOLD, 18));
+        netBalanceValue.setForeground(SECONDARY_COLOR);
+        netBalanceValue.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        netBalancePanel.add(netBalanceTitle);
+        netBalancePanel.add(Box.createVerticalStrut(5));
+        netBalancePanel.add(netBalanceValue);
+        
+        // Pending transactions box
+        JPanel pendingPanel = new JPanel();
+        pendingPanel.setLayout(new BoxLayout(pendingPanel, BoxLayout.Y_AXIS));
+        pendingPanel.setBackground(new Color(255, 248, 225));
+        pendingPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        JLabel pendingTitle = new JLabel("Pending");
+        pendingTitle.setFont(new Font("SansSerif", Font.BOLD, 14));
+        pendingTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JLabel pendingValue = new JLabel(pendingWithdrawals > 0 ? "1" : "0");
+        pendingValue.setFont(new Font("SansSerif", Font.BOLD, 18));
+        pendingValue.setForeground(ACCENT_COLOR);
+        pendingValue.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        pendingPanel.add(pendingTitle);
+        pendingPanel.add(Box.createVerticalStrut(5));
+        pendingPanel.add(pendingValue);
+        
+        overviewPanel.add(netBalancePanel);
+        overviewPanel.add(pendingPanel);
+        
+        // Add report action buttons
+        JPanel reportActionsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        reportActionsPanel.setBackground(Color.WHITE);
+        reportActionsPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        
+        JButton pdfButton = new JButton("Generate PDF");
+        pdfButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        pdfButton.setBackground(SECONDARY_COLOR);
+        pdfButton.setForeground(Color.WHITE);
+        pdfButton.setFocusPainted(false);
+        pdfButton.setBorderPainted(false);
+        pdfButton.addActionListener(event -> {
+            statementDialog.dispose();
+            exportToPDF();
+        });
+        
+        JButton csvButton = new JButton("Export as CSV");
+        csvButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        csvButton.setBackground(new Color(46, 125, 50));
+        csvButton.setForeground(Color.WHITE);
+        csvButton.setFocusPainted(false);
+        csvButton.setBorderPainted(false);
+        csvButton.addActionListener(event -> {
+            JOptionPane.showMessageDialog(this, "CSV export feature coming soon!");
+        });
+        
+        JButton textButton = new JButton("Export as Text");
+        textButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        textButton.setBackground(new Color(220, 53, 69));
+        textButton.setForeground(Color.WHITE);
+        textButton.setFocusPainted(false);
+        textButton.setBorderPainted(false);
+        textButton.addActionListener(event -> {
+            JOptionPane.showMessageDialog(this, "Text export feature coming soon!");
+        });
+        
+        reportActionsPanel.add(pdfButton);
+        reportActionsPanel.add(csvButton);
+        reportActionsPanel.add(textButton);
+        
+        // Add all panels to dialog
+        statementDialog.add(overviewPanel, BorderLayout.NORTH);
+        statementDialog.add(mainPanel, BorderLayout.CENTER);
+        statementDialog.add(reportActionsPanel, BorderLayout.SOUTH);
+        
+        statementDialog.setVisible(true);
+    }
+
+
     // Method to export balance and transaction history to PDF
     private void exportToPDF() {
         if (accountComboBox.getSelectedItem() == null) {
@@ -1026,6 +1313,7 @@ private void updateBalanceDisplay() {
             }
         }
     }
+    
     
     // Class to store transaction data for PDF export
     private class TransactionItem {
