@@ -459,6 +459,8 @@ public class Dashbord extends JFrame {
         viewAllButton.setBackground(SECONDARY_COLOR);
         viewAllButton.setFocusPainted(false);
         viewAllButton.addActionListener(e -> handleButtonClick("Transactions"));
+        viewAllButton.setOpaque(true);  
+        viewAllButton.setBorderPainted(false);  
         
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setOpaque(false);

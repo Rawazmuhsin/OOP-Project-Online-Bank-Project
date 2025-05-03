@@ -492,6 +492,8 @@ public class Deposite extends JFrame {
         depositButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
         depositButton.setMaximumSize(new Dimension(800, 50));
         depositButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        depositButton.setOpaque(true);  
+        depositButton.setBorderPainted(false);
         
         // Add hover effect
         depositButton.addMouseListener(new MouseAdapter() {

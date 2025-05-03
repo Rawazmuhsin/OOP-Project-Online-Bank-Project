@@ -31,6 +31,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -63,7 +64,12 @@ public class SignUp extends JFrame {
         }
         
         setTitle("Sign Up - Kurdish-O-Banking");
-        setSize(1000, 700);
+        
+        // Adjust size based on screen dimensions
+        Dimension screenSize = getToolkit().getScreenSize();
+        setSize(Math.min(1000, screenSize.width - 100), 
+                Math.min(700, screenSize.height - 100));
+                
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -182,12 +188,20 @@ public class SignUp extends JFrame {
         mainPanel.setLayout(new GridBagLayout());
         mainPanel.setBackground(BACKGROUND_COLOR);
         
+        // Create a scroll pane for the main panel
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
         // Signup form card
         JPanel formCard = new RoundedPanel(20, CARD_COLOR);
         formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
         formCard.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
         // Increase height to fit all components
-        formCard.setPreferredSize(new Dimension(450, 620));
+        formCard.setPreferredSize(new Dimension(450, 700));
         
         // Back to login link
         JLabel backButton = new JLabel("← Back to Login");
@@ -226,7 +240,7 @@ public class SignUp extends JFrame {
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         // Error label for validation errors
-        errorLabel = new JLabel(" ");
+        errorLabel = new JLabel("Please fill in all required fields");
         errorLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         errorLabel.setForeground(ERROR_COLOR);
         errorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -326,32 +340,39 @@ public class SignUp extends JFrame {
         accountTypePanel.add(savingsPanel);
         
         formCard.add(accountTypePanel);
-        formCard.add(Box.createVerticalStrut(15)); // Reduced vertical spacing
+        formCard.add(Box.createVerticalStrut(30)); // Added more space before the sign-up button
         
-        // Sign up button
+        // Create a clear and distinct sign-up button
         JButton signUpButton = new JButton("Create Account");
-        signUpButton.setBackground(ACCENT_COLOR);
-        signUpButton.setForeground(Color.WHITE);
         signUpButton.setFont(new Font("SansSerif", Font.BOLD, 16));
+        signUpButton.setForeground(Color.WHITE);
+        signUpButton.setBackground(ACCENT_COLOR); // Orange accent color
         signUpButton.setFocusPainted(false);
+        signUpButton.setBorderPainted(false);
+        signUpButton.setOpaque(true);
         signUpButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        signUpButton.setMaximumSize(new Dimension(370, 50)); // Fixed width
-        signUpButton.setPreferredSize(new Dimension(370, 50)); // Added preferred size
         signUpButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        signUpButton.setMaximumSize(new Dimension(370, 50));
+        signUpButton.setPreferredSize(new Dimension(370, 50));
         
-        // Add hover effect
-        signUpButton.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                signUpButton.setBackground(new Color(235, 145, 0));
-            }
-            
-            @Override
-            public void mouseExited(MouseEvent e) {
-                signUpButton.setBackground(ACCENT_COLOR);
-            }
-        });
+        // Try to add the hand icon to the button
+        try {
+            ImageIcon signUpIcon = new ImageIcon("Logo/signup_hand_icon.png");
+            // Scale the icon to a smaller size to fit alongside text
+            java.awt.Image img = signUpIcon.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
+            signUpIcon = new ImageIcon(img);
+            signUpButton.setIcon(signUpIcon);
+            // Position the icon to the left of the text
+            signUpButton.setIconTextGap(10);
+            signUpButton.setHorizontalAlignment(JButton.LEFT);
+        } catch (Exception e) {
+            // Button already has text, so no icon needed
+            System.err.println("Error loading signup icon: " + e.getMessage());
+            // Center the text if no icon
+            signUpButton.setHorizontalAlignment(JButton.CENTER);
+        }
         
+        // Add action listener for button
         signUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -359,8 +380,16 @@ public class SignUp extends JFrame {
             }
         });
         
-        formCard.add(signUpButton);
-        formCard.add(Box.createVerticalStrut(15)); // Reduced vertical spacing
+        // Add button to form with proper padding
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setOpaque(false);
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        buttonPanel.setMaximumSize(new Dimension(370, 50));
+        buttonPanel.add(signUpButton);
+        
+        formCard.add(buttonPanel);
+        formCard.add(Box.createVerticalStrut(20));
         
         // Login link
         JPanel loginLinkPanel = new JPanel();
@@ -407,7 +436,7 @@ public class SignUp extends JFrame {
         
         // Add panels to frame
         add(sidebar, BorderLayout.WEST);
-        add(mainPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER); // Use scrollPane instead of mainPanel
         
         // Try to set icon
         try {

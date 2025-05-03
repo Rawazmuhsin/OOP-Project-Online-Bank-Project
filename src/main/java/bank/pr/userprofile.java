@@ -32,7 +32,6 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -45,7 +44,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-public class UserProfile extends JFrame {
+ class UserProfile extends JFrame {
     
     private static final long serialVersionUID = 1L;
     
@@ -384,6 +383,8 @@ public class UserProfile extends JFrame {
         uploadButton.setForeground(Color.WHITE);
         uploadButton.setFocusPainted(false);
         uploadButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        uploadButton.setOpaque(true);  
+        uploadButton.setBorderPainted(false);  
         uploadButton.setMaximumSize(new Dimension(150, 30));
         uploadButton.addActionListener(e -> uploadProfilePhoto());
         
@@ -447,6 +448,8 @@ public class UserProfile extends JFrame {
         editButton.setForeground(Color.WHITE);
         editButton.setFocusPainted(false);
         editButton.addActionListener(e -> toggleEditMode());
+        editButton.setOpaque(true);  
+        editButton.setBorderPainted(false); 
         
         saveButton = new JButton("Save Changes");
         saveButton.setFont(new Font("SansSerif", Font.BOLD, 14));

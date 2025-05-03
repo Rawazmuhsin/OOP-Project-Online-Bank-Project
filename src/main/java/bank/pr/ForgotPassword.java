@@ -31,6 +31,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -65,7 +66,12 @@ public class ForgotPassword extends JFrame {
         }
         
         setTitle("Forgot Password - Kurdish-O-Banking");
-        setSize(1000, 700);
+        
+        // Adjust size based on screen dimensions
+        Dimension screenSize = getToolkit().getScreenSize();
+        setSize(Math.min(1000, screenSize.width - 100), 
+                Math.min(700, screenSize.height - 100));
+                
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
@@ -159,11 +165,19 @@ public class ForgotPassword extends JFrame {
         mainPanel.setLayout(new GridBagLayout());
         mainPanel.setBackground(BACKGROUND_COLOR);
         
+        // Create a scroll pane to ensure the form is fully visible
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        
         // Recovery form card
         JPanel formCard = new RoundedPanel(20, CARD_COLOR);
         formCard.setLayout(new BoxLayout(formCard, BoxLayout.Y_AXIS));
         formCard.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-        formCard.setPreferredSize(new Dimension(450, 580));
+        formCard.setPreferredSize(new Dimension(450, 620)); // Increased height
         
         // Back button
         JLabel backButton = new JLabel("← Back to Login");
@@ -261,6 +275,8 @@ public class ForgotPassword extends JFrame {
         sendOTPButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         sendOTPButton.setMaximumSize(new Dimension(400, 50));
         sendOTPButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sendOTPButton.setOpaque(true);  
+        sendOTPButton.setBorderPainted(false);
         
         JButton resetButton = new JButton("Reset Password");
         resetButton.setBackground(ACCENT_COLOR);
@@ -270,6 +286,9 @@ public class ForgotPassword extends JFrame {
         resetButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         resetButton.setMaximumSize(new Dimension(400, 50));
         resetButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Add these two lines to make the button visible
+        resetButton.setOpaque(true);  
+        resetButton.setBorderPainted(false);
         
         // Add hover effects
         sendOTPButton.addMouseListener(new MouseAdapter() {
@@ -328,7 +347,7 @@ public class ForgotPassword extends JFrame {
         
         // Add panels to frame
         add(sidebar, BorderLayout.WEST);
-        add(mainPanel, BorderLayout.CENTER);
+        add(scrollPane, BorderLayout.CENTER); // Use scrollPane instead of mainPanel
         
         // Try to set icon
         try {

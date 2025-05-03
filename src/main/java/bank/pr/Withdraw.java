@@ -486,6 +486,8 @@ quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
         withdrawButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
         withdrawButton.setMaximumSize(new Dimension(800, 50));
         withdrawButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        withdrawButton.setOpaque(true);  
+        withdrawButton.setBorderPainted(false);
         
         // Add hover effect
         withdrawButton.addMouseListener(new MouseAdapter() {

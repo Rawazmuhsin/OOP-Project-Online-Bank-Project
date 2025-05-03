@@ -11,7 +11,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
@@ -23,8 +22,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,7 +32,6 @@ import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -515,6 +511,8 @@ public class Transfer extends JFrame {
         transferButton.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
         transferButton.setMaximumSize(new Dimension(800, 50));
         transferButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        transferButton.setOpaque(true);
+        transferButton.setBorderPainted(false);
         
         transferButton.addActionListener(new ActionListener() {
             @Override
@@ -660,6 +658,8 @@ public class Transfer extends JFrame {
         button.setFont(new Font("SansSerif", Font.BOLD, 14));
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
+        button.setOpaque(true);  
+        button.setBorderPainted(false);  
         
         return button;
     }

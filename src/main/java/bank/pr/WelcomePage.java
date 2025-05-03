@@ -179,6 +179,8 @@ public class WelcomePage extends JFrame {
         loginButton.setFocusPainted(false);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 16));
         loginButton.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
+        loginButton.setOpaque(true);  
+        loginButton.setBorderPainted(false);
         
         JButton signupButton = new JButton("Sign Up");
         signupButton.setBackground(new Color(240, 240, 240));
