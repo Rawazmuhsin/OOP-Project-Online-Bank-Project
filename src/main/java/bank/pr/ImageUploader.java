@@ -3,19 +3,13 @@ package bank.pr;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import javax.imageio.ImageIO;
-import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -33,11 +27,7 @@ public class ImageUploader {
         }
     }
     
-    /**
-     * Opens a file chooser dialog to allow the user to select an image.
-     * @param parent The parent frame for the dialog
-     * @return The selected image as a BufferedImage, or null if no selection made
-     */
+   
     public static BufferedImage browseForImage(JFrame parent) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Select Profile Image");
@@ -74,12 +64,7 @@ public class ImageUploader {
         return null;
     }
     
-    /**
-     * Saves an image for a specific user
-     * @param userId The user ID
-     * @param image The image to save
-     * @return true if successful, false otherwise
-     */
+    
     public static boolean saveUserImage(int userId, BufferedImage image) {
         if (image == null) return false;
         
@@ -101,11 +86,7 @@ public class ImageUploader {
         }
     }
     
-    /**
-     * Updates the user's image path in the database
-     * @param userId The user ID
-     * @param imagePath The path to the saved image
-     */
+ 
     private static void updateImagePathInDB(int userId, String imagePath) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             // Check if we need to add a new column to the accounts table
@@ -122,10 +103,7 @@ public class ImageUploader {
         }
     }
     
-    /**
-     * Adds an 'profile_image' column to the accounts table if it doesn't exist yet
-     * @param conn Database connection
-     */
+   
     private static void addImageColumnIfNotExists(Connection conn) throws SQLException {
         try {
             // Check if column exists
@@ -153,11 +131,6 @@ public class ImageUploader {
         }
     }
     
-    /**
-     * Loads a user's profile image
-     * @param userId The user ID
-     * @return The loaded image as a BufferedImage, or null if not found
-     */
     public static BufferedImage loadUserImage(int userId) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String query = "SELECT profile_image FROM accounts WHERE account_id = ?";
@@ -181,13 +154,7 @@ public class ImageUploader {
         return null;
     }
     
-    /**
-     * Resize an image to a specific dimension
-     * @param originalImage The original image
-     * @param targetWidth The target width
-     * @param targetHeight The target height
-     * @return The resized image
-     */
+    
     public static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
         Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
         BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);

@@ -61,7 +61,6 @@ public class BalancePage extends JFrame {
     
     private static final long serialVersionUID = 1L;
     
-    // Colors scheme - matching Dashboard
     private static final Color PRIMARY_COLOR = new Color(20, 30, 70);
     private static final Color SECONDARY_COLOR = new Color(30, 144, 255);
     private static final Color ACCENT_COLOR = new Color(255, 165, 0);
@@ -82,7 +81,7 @@ public class BalancePage extends JFrame {
     private List<JButton> menuButtons = new ArrayList<>();
     private JLabel lastUpdateLabel;
     private JPanel transactionListPanel;
-    private int maxVisibleTransactions = 3; // Maximum number of transactions to show
+    private int  maxVisibleTransactions = 3; // Maximum number of transactions to show
 
     // Default constructor
     public BalancePage() {

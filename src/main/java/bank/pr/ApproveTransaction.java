@@ -394,7 +394,6 @@ public class ApproveTransaction extends JFrame {
         }
     }
 
-    // Approve a specific transaction
     public void approveTransaction(int transactionId) {
         Connection conn = null;
         try {
@@ -513,7 +512,7 @@ public class ApproveTransaction extends JFrame {
                         newBalance = currentBalance + amount;
                         System.out.println("    ✓ Deposit transaction - New Balance: $" + newBalance);
                         System.out.println("      (Current: $" + currentBalance + " + Deposit: $" + amount + ")");
-                    } else if (type.equals("WITHDRAW")) {
+                    } else  {
                         newBalance = currentBalance - amount;
                         System.out.println("    ✓ Withdrawal transaction - New Balance: $" + newBalance);
                         System.out.println("      (Current: $" + currentBalance + " - Withdrawal: $" + amount + ")");
@@ -524,9 +523,6 @@ public class ApproveTransaction extends JFrame {
                             System.out.println("      Withdrawal amount: $" + amount + ", Current balance: $" + currentBalance);
                             throw new SQLException("Insufficient funds for withdrawal. Current balance: $" + currentBalance);
                         }
-                    } else {
-                        System.out.println("    ! Unrecognized transaction type: " + type);
-                        System.out.println("      WARNING: No balance adjustment will be made!");
                     }
                     
                     // Update the account balance
@@ -701,6 +697,7 @@ public class ApproveTransaction extends JFrame {
             }
         }
     }
+    
     
     // Reject a specific transaction
     public void rejectTransaction(int transactionId) {
