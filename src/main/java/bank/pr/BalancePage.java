@@ -752,23 +752,53 @@ public class BalancePage extends JFrame {
         return accounts;
     }
     
-    private void updateBalanceDisplay() {
-        if (accountComboBox.getSelectedItem() != null) {
-            Account selectedAccount = (Account) accountComboBox.getSelectedItem();
-            
-            // Update both balance displays
-            String formattedBalance = String.format("$%.2f", selectedAccount.getBalance());
-            balanceLabel.setText(formattedBalance);
-            availableBalanceLabel.setText(formattedBalance); // Assuming available balance is the same as current balance
-            
-            // Update user ID and username based on the selected account
-            userId = selectedAccount.getAccountId();
-            userName = selectedAccount.getUsername();
-            
-            // Update transaction list
-            updateTransactionList();
+    
+    
+private double getPendingWithdrawalsAmount(int accountId) {
+    double pendingWithdrawals = 0.0;
+    
+    try (Connection conn = DatabaseConnection.getConnection()) {
+        String query = "SELECT SUM(amount) as pending_amount FROM transactions " +
+                       "WHERE account_id = ? AND transaction_type = 'Withdrawal' " + 
+                       "AND status = 'PENDING'";
+        
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setInt(1, accountId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next() && rs.getObject("pending_amount") != null) {
+            pendingWithdrawals = rs.getDouble("pending_amount");
         }
+    } catch (SQLException e) {
+        System.err.println("Database error fetching pending withdrawals: " + e.getMessage());
+        e.printStackTrace();
     }
+    
+    return pendingWithdrawals;
+}
+
+private void updateBalanceDisplay() {
+    if (accountComboBox.getSelectedItem() != null) {
+        Account selectedAccount = (Account) accountComboBox.getSelectedItem();
+        
+        // Update current balance display
+        String formattedBalance = String.format("$%.2f", selectedAccount.getBalance());
+        balanceLabel.setText(formattedBalance);
+        
+        // Calculate available balance (current balance minus pending withdrawals)
+        double pendingWithdrawals = getPendingWithdrawalsAmount(selectedAccount.getAccountId());
+        double availableBalance = selectedAccount.getBalance() - pendingWithdrawals;
+        String formattedAvailableBalance = String.format("$%.2f", availableBalance);
+        availableBalanceLabel.setText(formattedAvailableBalance);
+        
+        // Update user ID and username based on the selected account
+        userId = selectedAccount.getAccountId();
+        userName = selectedAccount.getUsername();
+        
+        // Update transaction list
+        updateTransactionList();
+    }
+}
     
     private void updateTransactionList() {
         // Clear existing transactions
