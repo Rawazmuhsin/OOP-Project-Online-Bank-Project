@@ -23,7 +23,9 @@ import java.util.Vector;
 
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -41,6 +43,19 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 
 public class ApproveTransaction extends JFrame {
+    // Main color palette - matching ManagerDashboard
+    private static final Color PRIMARY_COLOR = new Color(20, 30, 70);
+    private static final Color SECONDARY_COLOR = new Color(30, 144, 255);
+    private static final Color ACCENT_COLOR = new Color(255, 165, 0);
+    private static final Color BACKGROUND_COLOR = new Color(245, 247, 250);
+    private static final Color TEXT_COLOR = new Color(50, 50, 50);
+    private static final Color LIGHT_TEXT_COLOR = new Color(120, 120, 120);
+    
+    // Status colors
+    private static final Color SUCCESS_COLOR = new Color(40, 167, 69);
+    private static final Color WARNING_COLOR = new Color(255, 153, 0);
+    private static final Color DANGER_COLOR = new Color(220, 53, 69);
+    
     private DefaultTableModel tableModel;
     private JTable table;
     private final String DB_URL = "jdbc:mysql://localhost:3306/user_management";
@@ -67,9 +82,9 @@ public class ApproveTransaction extends JFrame {
         setLayout(new BorderLayout());
 
         // Set background color
-        getContentPane().setBackground(new Color(245, 247, 251));
+        getContentPane().setBackground(BACKGROUND_COLOR);
 
-        // Create sidebar panel
+        // Create sidebar panel using gradient background like ManagerDashboard
         JPanel sidebarPanel = createSidebarPanel();
         add(sidebarPanel, BorderLayout.WEST);
 
@@ -84,132 +99,204 @@ public class ApproveTransaction extends JFrame {
     }
 
     private JPanel createSidebarPanel() {
-        JPanel sidebarPanel = new JPanel();
-        sidebarPanel.setPreferredSize(new Dimension(250, 800));
-        sidebarPanel.setBackground(new Color(26, 32, 44)); // #1a202c
-        sidebarPanel.setLayout(null);
+        JPanel sidebar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Create gradient background like ManagerDashboard
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, PRIMARY_COLOR, 
+                    0, getHeight(), new Color(10, 20, 50)
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight());
+                g2d.dispose();
+            }
+        };
+        
+        sidebar.setPreferredSize(new Dimension(260, getHeight()));
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBorder(BorderFactory.createEmptyBorder(30, 25, 30, 25));
+        
+        // Add logo
+        JLabel logoLabel = new JLabel();
+        try {
+            // Path to your saved logo
+            ImageIcon logoIcon = new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png");
+            // Resize the image
+            java.awt.Image image = logoIcon.getImage().getScaledInstance(120, 80, java.awt.Image.SCALE_SMOOTH);
+            logoIcon = new ImageIcon(image);
+            logoLabel.setIcon(logoIcon);
+            logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        } catch (Exception e) {
+            System.err.println("Error loading logo: " + e.getMessage());
+        }
+        
+        // Bank name 
+        JLabel bankNameLabel = new JLabel("KOB Manager Portal");
+        bankNameLabel.setForeground(Color.WHITE);
+        bankNameLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        bankNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Admin panel label
+        JLabel adminLabel = new JLabel("Administration Panel");
+        adminLabel.setForeground(new Color(180, 180, 180));
+        adminLabel.setFont(new Font("SansSerif", Font.ITALIC, 14));
+        adminLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Add sidebar header
+        sidebar.add(logoLabel);
+        sidebar.add(bankNameLabel);
+        sidebar.add(Box.createVerticalStrut(5));
+        sidebar.add(adminLabel);
+        sidebar.add(Box.createVerticalStrut(40));
+        
+        // Menu items panel
+        JPanel menuPanel = new JPanel();
+        menuPanel.setOpaque(false);
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+        menuPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Add menu items
+        addMenuItem(menuPanel, "Dashboard", false);
+        addMenuItem(menuPanel, "Customer Accounts", false);
+        addMenuItem(menuPanel, "Transaction Oversight", false);
+        addMenuItem(menuPanel, "Approval Queue", true); // Active menu
+        addMenuItem(menuPanel, "Reports", false);
+        addMenuItem(menuPanel, "Audit Logs", false);
+        
+        sidebar.add(menuPanel);
+        sidebar.add(Box.createVerticalGlue());
+        
+        return sidebar;
+    }
     
-        // Sidebar title
-        JLabel titleLabel = new JLabel("KOB Manager");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setBounds(60, 40, 200, 30);
-        sidebarPanel.add(titleLabel);
-    
-        // Active sidebar button (Approval Queue)
-        JButton approvalButton = createSidebarButton("Approval Queue", true);
-        approvalButton.setBounds(20, 100, 210, 40);
-        sidebarPanel.add(approvalButton);
-    
-        // Other sidebar buttons
-        String[] menuItems = {"Dashboard", "Customer Accounts", "Transaction Mgmt", "Reports", "Audit Logs"};
-        int yPos = 180;
-        for (String item : menuItems) {
-            JButton menuButton = createSidebarButton(item, false);
-            menuButton.setBounds(20, yPos, 210, 30);
-    
-            // Add action listeners for each menu item
-            if (item.equals("Dashboard")) {
-                menuButton.addActionListener(e -> {
-                    dispose();
-                    SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
-                });
-            } else if (item.equals("Transaction Mgmt")) {
-                menuButton.addActionListener(e -> {
-                    dispose();
-                    SwingUtilities.invokeLater(() -> {
-                        new ManageTransaction(adminId);
-                    });
-                });
-            } else if (item.equals("Customer Accounts")) {
-                menuButton.addActionListener(e -> {
-                    dispose();
-                    SwingUtilities.invokeLater(() -> new CustomerAccounts(adminId).setVisible(true));
-                });
-            } else if (item.equals("Reports")) {
-                menuButton.addActionListener(e -> {
-                    dispose();
-                    // Fix: Use the Report default constructor as it doesn't accept just adminId
-                    SwingUtilities.invokeLater(() -> new Report().setVisible(true));
-                });
-            } else if (item.equals("Audit Logs")) {
-                menuButton.addActionListener(e -> {
-                    dispose();
-                    JOptionPane.showMessageDialog(null, 
-                        "Audit Logs screen is under development.", 
-                        "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
-                    SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
-                });
+    /**
+     * Helper method to add menu items
+     */
+    private void addMenuItem(JPanel menuPanel, String text, boolean isActive) {
+        JPanel menuItem = new JPanel();
+        menuItem.setLayout(new BorderLayout());
+        menuItem.setOpaque(false);
+        menuItem.setMaximumSize(new Dimension(250, 50));
+        menuItem.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        // Add highlight for active item
+        if (isActive) {
+            menuItem.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 3, 0, 0, ACCENT_COLOR),
+                BorderFactory.createEmptyBorder(10, 15, 10, 10)
+            ));
+        } else {
+            menuItem.setBorder(BorderFactory.createEmptyBorder(10, 18, 10, 10));
+        }
+        
+        JLabel label = new JLabel(text);
+        label.setForeground(isActive ? Color.WHITE : new Color(200, 200, 200));
+        label.setFont(new Font("SansSerif", isActive ? Font.BOLD : Font.PLAIN, 16));
+        
+        menuItem.add(label, BorderLayout.CENTER);
+        
+        // Add hover effect
+        menuItem.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!isActive) {
+                    menuItem.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 3, 0, 0, new Color(100, 100, 100)),
+                        BorderFactory.createEmptyBorder(10, 15, 10, 10)
+                    ));
+                    label.setForeground(new Color(230, 230, 230));
+                }
             }
             
-            sidebarPanel.add(menuButton);
-            yPos += 40;
-        }
-    
-        return sidebarPanel;
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!isActive) {
+                    menuItem.setBorder(BorderFactory.createEmptyBorder(10, 18, 10, 10));
+                    label.setForeground(new Color(200, 200, 200));
+                }
+            }
+            
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToScreen(text);
+            }
+        });
+        
+        menuPanel.add(menuItem);
+        menuPanel.add(Box.createVerticalStrut(5));
     }
-    private JButton createSidebarButton(String text, boolean active) {
-        JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        if (active) {
-            button.setBackground(new Color(52, 58, 64));
-            button.setForeground(Color.WHITE);
-            button.setFont(new Font("Arial", Font.BOLD, 16));
-        } else {
-            button.setBackground(new Color(26, 32, 44));
-            button.setForeground(Color.WHITE);
-            button.setFont(new Font("Arial", Font.PLAIN, 14));
-
-            // Hover effect
-            button.addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) {
-                    button.setBackground(new Color(52, 58, 64));
-                }
-
-                public void mouseExited(MouseEvent e) {
-                    button.setBackground(new Color(26, 32, 44));
-                }
-            });
+    
+    /**
+     * Handles navigation to different screens
+     */
+    private void navigateToScreen(String screenName) {
+        dispose(); // Close the current window
+        
+        switch (screenName) {
+            case "Dashboard":
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            case "Customer Accounts":
+                SwingUtilities.invokeLater(() -> new CustomerAccounts(adminId).setVisible(true));
+                break;
+            case "Transaction Oversight":
+                SwingUtilities.invokeLater(() -> new ManageTransaction(adminId).setVisible(true));
+                break;
+            case "Reports":
+                SwingUtilities.invokeLater(() -> new Report().setVisible(true));
+                break;
+            case "Audit Logs":
+                JOptionPane.showMessageDialog(null, 
+                    "Audit Logs screen is under development.", 
+                    "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
+                break;
+            default:
+                SwingUtilities.invokeLater(() -> new ManagerDashboard(adminId).setVisible(true));
         }
-
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 10));
-        return button;
     }
 
     private JPanel createApprovalContentPanel() {
         JPanel mainPanel = new JPanel();
-        mainPanel.setBackground(new Color(245, 247, 251));
+        mainPanel.setBackground(BACKGROUND_COLOR);
         mainPanel.setLayout(new BorderLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        // Content container with padding
-        JPanel contentPanel = new JPanel();
-        contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(230, 230, 230)),
-                BorderFactory.createEmptyBorder(25, 30, 25, 30)
-        ));
+        // Content container with rounded corners - matching Dashboard card style
+        RoundedPanel contentPanel = new RoundedPanel(15, Color.WHITE);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
 
+        // Header Panel with title and subtitle
+        JPanel headerPanel = new JPanel();
+        headerPanel.setOpaque(false);
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
         // Approval Queue Header
         JLabel titleLabel = new JLabel("Approve Pending Transactions");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 26));
-        titleLabel.setForeground(new Color(52, 58, 64));
-        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        contentPanel.add(titleLabel);
-
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 26));
+        titleLabel.setForeground(TEXT_COLOR);
+        
         // Notification Label
         notificationLabel = new JLabel("Transactions awaiting approval");
-        notificationLabel.setFont(new Font("Arial", Font.PLAIN, 15));
-        notificationLabel.setForeground(new Color(220, 53, 69));
-        notificationLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        notificationLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 25, 0));
-        contentPanel.add(notificationLabel);
+        notificationLabel.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        notificationLabel.setForeground(DANGER_COLOR);
+        notificationLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
+        
+        headerPanel.add(titleLabel, BorderLayout.NORTH);
+        headerPanel.add(notificationLabel, BorderLayout.SOUTH);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 25, 0));
+        
+        contentPanel.add(headerPanel);
 
-        // Table
+        // Table with rounded corners and improved styling
         String[] columnNames = {"ID", "DATE", "CUSTOMER", "ACCOUNT", "AMOUNT", "TYPE", "ACTIONS"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
@@ -221,7 +308,7 @@ public class ApproveTransaction extends JFrame {
         table.setRowHeight(55);
         table.setShowGrid(false);
         table.setIntercellSpacing(new Dimension(0, 0));
-        table.setFont(new Font("Arial", Font.PLAIN, 14));
+        table.setFont(new Font("SansSerif", Font.PLAIN, 14));
         table.setSelectionBackground(new Color(240, 245, 255));
         table.setIntercellSpacing(new Dimension(0, 5));
 
@@ -253,42 +340,48 @@ public class ApproveTransaction extends JFrame {
         // Style table header
         JTableHeader header = table.getTableHeader();
         header.setBackground(new Color(248, 250, 252));
-        header.setForeground(new Color(52, 58, 64));
-        header.setFont(new Font("Arial", Font.BOLD, 14));
+        header.setForeground(TEXT_COLOR);
+        header.setFont(new Font("SansSerif", Font.BOLD, 14));
         header.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(230, 230, 230)));
         header.setReorderingAllowed(false);
         header.setPreferredSize(new Dimension(header.getWidth(), 40));
 
+        // Wrap table in a scroll pane with custom border
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
         contentPanel.add(scrollPane);
 
         // Bulk Action Buttons
-        JPanel actionnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 25));
-        actionnPanel.setBackground(Color.WHITE);
-        actionnPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel bulkActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 25));
+        bulkActionPanel.setBackground(Color.WHITE);
+        bulkActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton approveAllButton = createActionButton("Approve All", true);
         approveAllButton.addActionListener(e -> approveAllTransactions());
-        actionnPanel.add(approveAllButton);
+        bulkActionPanel.add(approveAllButton);
 
         JButton rejectAllButton = createActionButton("Reject All", false);
         rejectAllButton.addActionListener(e -> rejectAllTransactions());
-        actionnPanel.add(rejectAllButton);
+        bulkActionPanel.add(rejectAllButton);
 
-        contentPanel.add(actionnPanel);
+        contentPanel.add(bulkActionPanel);
+        
+        // Add spacing
+        contentPanel.add(Box.createVerticalStrut(15));
 
-        // Dashboard Button
+        // Dashboard Button styled like ManagerDashboard
         JButton dashboardButton = new JButton("← Dashboard");
-        dashboardButton.setFont(new Font("Arial", Font.PLAIN, 14));
+        dashboardButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
         dashboardButton.setBackground(new Color(248, 250, 252));
-        dashboardButton.setForeground(new Color(52, 58, 64));
+        dashboardButton.setForeground(TEXT_COLOR);
         dashboardButton.setBorder(BorderFactory.createLineBorder(new Color(230, 230, 230)));
         dashboardButton.setFocusPainted(false);
         dashboardButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        dashboardButton.setPreferredSize(new Dimension(150, 40));
         dashboardButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dashboardButton.setMaximumSize(new Dimension(150, 40));
+        dashboardButton.setPreferredSize(new Dimension(150, 40));
 
         // Update the dashboard button to navigate back with the admin ID
         dashboardButton.addActionListener(e -> {
@@ -308,16 +401,22 @@ public class ApproveTransaction extends JFrame {
             }
         });
 
-        // Create vertical spacing without using Box class
-        JPanel spacerPanel = new JPanel();
-        spacerPanel.setPreferredSize(new Dimension(1, 10));
-        spacerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 10));
-        spacerPanel.setOpaque(false);
-        contentPanel.add(spacerPanel);
         contentPanel.add(dashboardButton);
 
+        // Add footer with version info - like ManagerDashboard
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        footerPanel.setOpaque(false);
+        footerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        footerPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        
+        JLabel versionLabel = new JLabel("Kurdish-O-Banking Manager Portal v1.0 | © 2025 KOB. All rights reserved.");
+        versionLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        versionLabel.setForeground(LIGHT_TEXT_COLOR);
+        footerPanel.add(versionLabel);
+        
+        contentPanel.add(footerPanel);
+
         mainPanel.add(contentPanel, BorderLayout.CENTER);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
         return mainPanel;
     }
 
@@ -338,11 +437,11 @@ public class ApproveTransaction extends JFrame {
             }
         };
 
-        button.setFont(new Font("Arial", Font.BOLD, 14));
+        button.setFont(new Font("SansSerif", Font.BOLD, 14));
         if (isApprove) {
-            button.setForeground(new Color(13, 110, 253));
+            button.setForeground(SECONDARY_COLOR);
         } else {
-            button.setForeground(new Color(220, 53, 69));
+            button.setForeground(DANGER_COLOR);
         }
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
@@ -622,6 +721,7 @@ public class ApproveTransaction extends JFrame {
                     
                     System.out.println("✓✓✓ TRANSACTION APPROVED SUCCESSFULLY ✓✓✓");
                     
+                    // Show success message with styled dialog
                     JOptionPane.showMessageDialog(this,
                         "Transaction approved successfully",
                         "Approved",
@@ -642,6 +742,7 @@ public class ApproveTransaction extends JFrame {
                         rollbackEx.printStackTrace();
                     }
                     
+                    // Show error message with styled dialog
                     JOptionPane.showMessageDialog(this,
                         "Error approving transaction: " + e.getMessage(),
                         "Database Error",
@@ -792,9 +893,9 @@ public class ApproveTransaction extends JFrame {
                 // Color amounts based on transaction type
                 String type = table.getValueAt(row, 5).toString();
                 if (type.equals("DEPOSIT")) {
-                    label.setForeground(new Color(40, 167, 69)); // Green for deposits
+                    label.setForeground(SUCCESS_COLOR); // Green for deposits
                 } else {
-                    label.setForeground(new Color(220, 53, 69)); // Red for withdrawals/transfers
+                    label.setForeground(DANGER_COLOR); // Red for withdrawals/transfers
                 }
 
                 if (isSelected) {
@@ -816,19 +917,19 @@ public class ApproveTransaction extends JFrame {
             label.setOpaque(true);
 
             // Set font
-            label.setFont(new Font("Arial", Font.BOLD, 12));
+            label.setFont(new Font("SansSerif", Font.BOLD, 12));
 
             if (value.equals("DEPOSIT")) {
                 label.setBackground(new Color(230, 255, 250)); // #e6fffa
-                label.setForeground(new Color(13, 110, 253)); // #0d6efd
+                label.setForeground(SECONDARY_COLOR); // #0d6efd
                 label.setText("DEPOSIT");
             } else if (value.equals("WITHDRAW")) {
                 label.setBackground(new Color(255, 236, 236)); // #ffecec
-                label.setForeground(new Color(220, 53, 69)); // #dc3545
+                label.setForeground(DANGER_COLOR); // #dc3545
                 label.setText("WITHDRAW");
             } else if (value.equals("TRANSFER")) {
                 label.setBackground(new Color(255, 243, 205)); // Light yellow
-                label.setForeground(new Color(255, 153, 0)); // Orange
+                label.setForeground(ACCENT_COLOR); // Orange
                 label.setText("TRANSFER");
             }
 
@@ -866,8 +967,8 @@ public class ApproveTransaction extends JFrame {
                     super.paintComponent(g);
                 }
             };
-            approveButton.setFont(new Font("Arial", Font.BOLD, 12));
-            approveButton.setForeground(new Color(13, 110, 253));
+            approveButton.setFont(new Font("SansSerif", Font.BOLD, 12));
+            approveButton.setForeground(SECONDARY_COLOR);
             approveButton.setContentAreaFilled(false);
             approveButton.setBorderPainted(false);
             approveButton.setFocusPainted(false);
@@ -885,8 +986,8 @@ public class ApproveTransaction extends JFrame {
                     super.paintComponent(g);
                 }
             };
-            rejectButton.setFont(new Font("Arial", Font.BOLD, 12));
-            rejectButton.setForeground(new Color(220, 53, 69));
+            rejectButton.setFont(new Font("SansSerif", Font.BOLD, 12));
+            rejectButton.setForeground(DANGER_COLOR);
             rejectButton.setContentAreaFilled(false);
             rejectButton.setBorderPainted(false);
             rejectButton.setFocusPainted(false);
@@ -917,21 +1018,21 @@ public class ApproveTransaction extends JFrame {
             // Add hover effects
             approveButton.addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) {
-                    approveButton.setForeground(new Color(13, 110, 253).darker());
+                    approveButton.setForeground(SECONDARY_COLOR.darker());
                 }
 
                 public void mouseExited(MouseEvent e) {
-                    approveButton.setForeground(new Color(13, 110, 253));
+                    approveButton.setForeground(SECONDARY_COLOR);
                 }
             });
 
             rejectButton.addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) {
-                    rejectButton.setForeground(new Color(220, 53, 69).darker());
+                    rejectButton.setForeground(DANGER_COLOR.darker());
                 }
 
                 public void mouseExited(MouseEvent e) {
-                    rejectButton.setForeground(new Color(220, 53, 69));
+                    rejectButton.setForeground(DANGER_COLOR);
                 }
             });
 
@@ -965,10 +1066,44 @@ public class ApproveTransaction extends JFrame {
             return true;
         }
     }
+    
+    // Custom rounded panel with background color
+    class RoundedPanel extends JPanel {
+        private int cornerRadius;
+        private Color backgroundColor;
+        
+        public RoundedPanel(int radius, Color bgColor) {
+            super();
+            this.cornerRadius = radius;
+            this.backgroundColor = bgColor;
+            setOpaque(false);
+        }
+        
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(backgroundColor);
+            g2d.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
+            g2d.dispose();
+        }
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new ApproveTransaction();
+            try {
+                // Test database connection first
+                Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/user_management", "root", "Makwan2004111");
+                conn.close();
+                
+                // If connection successful, show the UI
+                new ApproveTransaction().setVisible(true);
+            } catch (SQLException e) {
+                JOptionPane.showMessageDialog(null, 
+                    "Cannot connect to database: " + e.getMessage(), 
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
 }
