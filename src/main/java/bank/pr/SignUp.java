@@ -15,9 +15,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Base64;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -446,6 +450,36 @@ public class SignUp extends JFrame {
         }
     }
     
+    // Method to hash password using SHA-256 with salt
+    private String hashPassword(String password) {
+        try {
+            // Generate a random salt
+            SecureRandom random = new SecureRandom();
+            byte[] salt = new byte[16];
+            random.nextBytes(salt);
+            
+            // Create MessageDigest instance for SHA-256
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            
+            // Add salt to digest
+            md.update(salt);
+            
+            // Get the hashed password
+            byte[] hashedPassword = md.digest(password.getBytes());
+            
+            // Store both salt and hashed password
+            StringBuilder sb = new StringBuilder();
+            sb.append(Base64.getEncoder().encodeToString(salt));
+            sb.append(":");
+            sb.append(Base64.getEncoder().encodeToString(hashedPassword));
+            
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
     private void processSignUp() {
         String username = fields[0].getText().trim();
         String email = fields[1].getText().trim();
@@ -479,11 +513,14 @@ public class SignUp extends JFrame {
         }
 
         try (Connection conn = DatabaseConnection.getConnection()) {
+            // Hash the password before storing it
+            String hashedPassword = hashPassword(password);
+            
             String sql = "INSERT INTO accounts (username, email, password, phone, account_type) VALUES (?, ?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(sql);
             stmt.setString(1, username);
             stmt.setString(2, email);
-            stmt.setString(3, password);
+            stmt.setString(3, hashedPassword);  // Store the hashed password instead of plain text
             stmt.setString(4, phone);
             stmt.setString(5, accountType);
 
