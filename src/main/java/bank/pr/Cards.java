@@ -134,7 +134,6 @@ public class Cards extends JFrame {
         sidebarPanel.setPreferredSize(new Dimension(240, getHeight()));
         sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
         
-        // Logo panel
         JPanel logoPanel = new JPanel();
         logoPanel.setOpaque(false);
         logoPanel.setLayout(new BorderLayout());
@@ -170,7 +169,6 @@ public class Cards extends JFrame {
         
         sidebarPanel.add(logoPanel);
         
-        // Add separator
         JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
         separator.setForeground(new Color(70, 80, 120));
         separator.setBackground(new Color(70, 80, 120));

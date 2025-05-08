@@ -53,7 +53,6 @@ public class SignUp extends JFrame {
     private static final Color TEXT_COLOR = new Color(50, 50, 50);
     private static final Color LIGHT_TEXT_COLOR = new Color(120, 120, 120);
     private static final Color ERROR_COLOR = new Color(220, 53, 69);
-    private static final Color SUCCESS_COLOR = new Color(40, 167, 69);
 
     private JTextField[] fields;
     private JRadioButton checkingRadio, savingsRadio;
