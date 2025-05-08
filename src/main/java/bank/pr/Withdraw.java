@@ -161,8 +161,15 @@ public class Withdraw extends JFrame {
         separator.setForeground(new Color(70, 80, 120));
         separator.setBackground(new Color(70, 80, 120));
         separator.setMaximumSize(new Dimension(220, 1));
+        separator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(separator);
         sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        // Create a panel to hold the menu buttons and center them
+        JPanel menuButtonsPanel = new JPanel();
+        menuButtonsPanel.setLayout(new BoxLayout(menuButtonsPanel, BoxLayout.Y_AXIS));
+        menuButtonsPanel.setOpaque(false);
+        menuButtonsPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Menu items with icons - Same as Dashboard for consistency
         String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
@@ -180,10 +187,28 @@ public class Withdraw extends JFrame {
                 }
             });
             
-            sidebarPanel.add(button);
+            // Center align the button
+            button.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Create a wrapper panel to center the button text
+            JPanel buttonWrapper = new JPanel();
+            buttonWrapper.setLayout(new BoxLayout(buttonWrapper, BoxLayout.X_AXIS));
+            buttonWrapper.setOpaque(false);
+            buttonWrapper.setMaximumSize(new Dimension(220, 45));
+            buttonWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Add space before the button to center it
+            buttonWrapper.add(Box.createHorizontalGlue());
+            buttonWrapper.add(button);
+            buttonWrapper.add(Box.createHorizontalGlue());
+            
+            menuButtonsPanel.add(buttonWrapper);
+            menuButtonsPanel.add(Box.createVerticalStrut(5));
             menuButtons.add(button);
-            sidebarPanel.add(Box.createVerticalStrut(5));
         }
+        
+        // Add the menu buttons panel to the sidebar
+        sidebarPanel.add(menuButtonsPanel);
         
         // Set Withdraw as initially selected
         updateSelectedButton("Withdraw");
@@ -195,9 +220,13 @@ public class Withdraw extends JFrame {
         bottomSeparator.setForeground(new Color(70, 80, 120));
         bottomSeparator.setBackground(new Color(70, 80, 120));
         bottomSeparator.setMaximumSize(new Dimension(220, 1));
+        bottomSeparator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(bottomSeparator);
         
+        // Create logout button centered
         JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -223,7 +252,18 @@ public class Withdraw extends JFrame {
             }
         });
         
-        sidebarPanel.add(logoutButton);
+        // Create wrapper for logout button to center it
+        JPanel logoutWrapper = new JPanel();
+        logoutWrapper.setLayout(new BoxLayout(logoutWrapper, BoxLayout.X_AXIS));
+        logoutWrapper.setOpaque(false);
+        logoutWrapper.setMaximumSize(new Dimension(220, 45));
+        logoutWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        logoutWrapper.add(Box.createHorizontalGlue());
+        logoutWrapper.add(logoutButton);
+        logoutWrapper.add(Box.createHorizontalGlue());
+        
+        sidebarPanel.add(logoutWrapper);
         sidebarPanel.add(Box.createVerticalStrut(20));
         
         add(sidebarPanel, BorderLayout.WEST);
@@ -231,16 +271,16 @@ public class Withdraw extends JFrame {
     
     private JButton createMenuButton(String text, String iconName) {
         JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setHorizontalAlignment(SwingConstants.CENTER); // Changed from LEFT to CENTER
         button.setIconTextGap(10);
-        button.setMaximumSize(new Dimension(220, 45));
-        button.setPreferredSize(new Dimension(220, 45));
+        button.setMaximumSize(new Dimension(180, 45)); // Reduced width to center better
+        button.setPreferredSize(new Dimension(180, 45)); // Reduced width to center better
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
         button.setFont(new Font("SansSerif", Font.PLAIN, 14));
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Equal padding on all sides
         
         // Try to load icon if available
         try {
@@ -289,7 +329,10 @@ public class Withdraw extends JFrame {
         }
     }
     
+    // The rest of the class remains unchanged
+    
     private void createHeaderPanel() {
+        // Existing implementation, no changes needed
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BorderLayout());
         headerPanel.setBackground(CARD_COLOR);
@@ -340,6 +383,7 @@ public class Withdraw extends JFrame {
     }
     
     private void createMainContent() {
+        // Existing implementation, no changes needed
         // Main content panel
         JPanel mainContent = new JPanel();
         mainContent.setLayout(new GridBagLayout());
@@ -546,6 +590,7 @@ quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
     }
     
     private JPanel createSectionPanel(String title) {
+        // Existing implementation, no changes needed
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.setBackground(CARD_COLOR);
@@ -574,6 +619,7 @@ quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
     }
     
     private JPanel createRadioCard(String title, String description, JRadioButton radio) {
+        // Existing implementation, no changes needed
         JPanel panel = new RoundedPanel(15, Color.WHITE);
         panel.setPreferredSize(new Dimension(240, 100));
         panel.setLayout(new BorderLayout());
@@ -610,6 +656,8 @@ quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
         
         return panel;
     }
+    
+    // Rest of the methods remain unchanged
     
     // Method to set user info
     public void setUserInfo(String userName, int accountId) {
@@ -663,285 +711,285 @@ quickButtons.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
         }
     }
     
-    // Method to handle button clicks
-    private void handleButtonClick(String buttonName) {
-        System.out.println("Button clicked: " + buttonName);
-        
-        switch (buttonName) {
-            case "Dashboard":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Dashbord dashboard = new Dashbord();
-                        dashboard.setUserInfo(userName, accountId);
-                        dashboard.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-            case "Balance":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        BalancePage balancePage = new BalancePage(userName, accountId);
-                        balancePage.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-            case "Deposit":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Deposite depositScreen = new Deposite();
-                        depositScreen.setUserInfo(userName, accountId);
-                        depositScreen.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-            case "Withdraw":
-                // Stay on withdraw page
-                break;
-            case "Transfers":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Transfer transferScreen = new Transfer();
-                        transferScreen.setUserInfo(userName, accountId);
-                        transferScreen.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-            case "Transactions":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Transaction transactionScreen = new Transaction(accountId, userName);
-                        transactionScreen.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-            case "Accounts":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        UserProfile userProfile = new UserProfile();
-                        userProfile.setUserInfo(userName, accountId);
-                        userProfile.setVisible(true);
-                        dispose();
-                    }
-                });
-                break;
-                case "QR Codes":
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Dashbord dashboard = new Dashbord();
-                        dashboard.setUserInfo(userName, accountId);
-                        dashboard.setVisible(true);
-                        // Navigate to QR Codes tab on dashboard
-                        dispose();
-                    }
-                });
-                break;
-            case "Cards":
-                JOptionPane.showMessageDialog(this, "Cards feature coming soon!");
-                break;
-            default:
-                break;
-        }
+   // Method to handle button clicks
+   private void handleButtonClick(String buttonName) {
+    System.out.println("Button clicked: " + buttonName);
+    
+    switch (buttonName) {
+        case "Dashboard":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, accountId);
+                    dashboard.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+        case "Balance":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    BalancePage balancePage = new BalancePage(userName, accountId);
+                    balancePage.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+        case "Deposit":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Deposite depositScreen = new Deposite();
+                    depositScreen.setUserInfo(userName, accountId);
+                    depositScreen.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+        case "Withdraw":
+            // Stay on withdraw page
+            break;
+        case "Transfers":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Transfer transferScreen = new Transfer();
+                    transferScreen.setUserInfo(userName, accountId);
+                    transferScreen.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+        case "Transactions":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Transaction transactionScreen = new Transaction(accountId, userName);
+                    transactionScreen.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+        case "Accounts":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    UserProfile userProfile = new UserProfile();
+                    userProfile.setUserInfo(userName, accountId);
+                    userProfile.setVisible(true);
+                    dispose();
+                }
+            });
+            break;
+            case "QR Codes":
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    Dashbord dashboard = new Dashbord();
+                    dashboard.setUserInfo(userName, accountId);
+                    dashboard.setVisible(true);
+                    // Navigate to QR Codes tab on dashboard
+                    dispose();
+                }
+            });
+            break;
+        case "Cards":
+            JOptionPane.showMessageDialog(this, "Cards feature coming soon!");
+            break;
+        default:
+            break;
+    }
+}
+
+// Method to handle withdraw submission
+private void handleWithdrawSubmit() {
+    String amount = amountField.getText().trim();
+    String description = descArea.getText().trim();
+    
+    if (amount.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Please enter an amount to withdraw", "Error", JOptionPane.ERROR_MESSAGE);
+        return;
     }
     
-    // Method to handle withdraw submission
-    private void handleWithdrawSubmit() {
-        String amount = amountField.getText().trim();
-        String description = descArea.getText().trim();
-        
-        if (amount.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please enter an amount to withdraw", "Error", JOptionPane.ERROR_MESSAGE);
+    try {
+        double amountValue = Double.parseDouble(amount);
+        if (amountValue <= 0) {
+            JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
-        try {
-            double amountValue = Double.parseDouble(amount);
-            if (amountValue <= 0) {
-                JOptionPane.showMessageDialog(this, "Please enter a positive amount", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        // Confirm withdrawal with custom dialog
+        String message = String.format(
+            "<html><div style='text-align: center;'>" +
+            "<h2>Confirm Withdrawal</h2>" +
+            "<p>You are about to withdraw:</p>" +
+            "<h3 style='color: #1E90FF;'>$%.2f</h3>" +
+            "<p>Method: <b>%s</b></p>" +
+            "<p>Please confirm this transaction.</p>" +
+            "</div></html>",
+            amountValue, 
+            bankTransferRadio.isSelected() ? "Bank Transfer" : "Debit Card"
+        );
+        
+        int confirmResult = JOptionPane.showConfirmDialog(
+            this,
+            message,
+            "Confirm Withdrawal",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (confirmResult == JOptionPane.YES_OPTION) {
+            boolean success = saveTransaction(amountValue, description);
             
-            // Confirm withdrawal with custom dialog
-            String message = String.format(
-                "<html><div style='text-align: center;'>" +
-                "<h2>Confirm Withdrawal</h2>" +
-                "<p>You are about to withdraw:</p>" +
-                "<h3 style='color: #1E90FF;'>$%.2f</h3>" +
-                "<p>Method: <b>%s</b></p>" +
-                "<p>Please confirm this transaction.</p>" +
-                "</div></html>",
-                amountValue, 
-                bankTransferRadio.isSelected() ? "Bank Transfer" : "Debit Card"
-            );
-            
-            int confirmResult = JOptionPane.showConfirmDialog(
-                this,
-                message,
-                "Confirm Withdrawal",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-            );
-            
-            if (confirmResult == JOptionPane.YES_OPTION) {
-                boolean success = saveTransaction(amountValue, description);
+            if (success) {
+                String successMessage = String.format(
+                    "<html><div style='text-align: center;'>" +
+                    "<h2 style='color: #28A745;'>Withdrawal Pending</h2>" +
+                    "<p>Your withdrawal of <b>$%.2f</b> has been submitted</p>" +
+                    "<p>Transaction ID: <b>%s</b></p>" +
+                    "<p>Status: <b>Pending Approval</b></p>" +
+                    "</div></html>",
+                    amountValue, generateTransactionId()
+                );
                 
-                if (success) {
-                    String successMessage = String.format(
-                        "<html><div style='text-align: center;'>" +
-                        "<h2 style='color: #28A745;'>Withdrawal Pending</h2>" +
-                        "<p>Your withdrawal of <b>$%.2f</b> has been submitted</p>" +
-                        "<p>Transaction ID: <b>%s</b></p>" +
-                        "<p>Status: <b>Pending Approval</b></p>" +
-                        "</div></html>",
-                        amountValue, generateTransactionId()
-                    );
-                    
-                    JOptionPane.showMessageDialog(
-                        this,
-                        successMessage,
-                        "Withdrawal Submitted",
-                        JOptionPane.INFORMATION_MESSAGE
-                    );
-                    
-                    SwingUtilities.invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            Dashbord dashboard = new Dashbord();
-                            dashboard.setUserInfo(userName, accountId);
-                            dashboard.setVisible(true);
-                            dispose();
-                        }
-                    });
-                } else {
-                    JOptionPane.showMessageDialog(this, 
-                            "Failed to process withdrawal. Please try again later.", 
-                            "Error", 
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-            
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
-    // Generate a transaction ID
-    private String generateTransactionId() {
-        return "WTH" + System.currentTimeMillis() % 10000000;
-    }
-    
-    // Method to save transaction
-    private boolean saveTransaction(double amount, String description) {
-        Connection conn = null;
-        try {
-            conn = DatabaseConnection.getConnection();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            String currentDate = sdf.format(new Date());
-            
-            System.out.println("Creating withdrawal transaction:");
-            System.out.println("Account ID: " + accountId);
-            System.out.println("Amount: $" + amount);
-            System.out.println("Date: " + currentDate);
-            System.out.println("Description: " + description);
-
-            // Check if account has sufficient funds
-            String balanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
-            PreparedStatement balanceStmt = conn.prepareStatement(balanceQuery);
-            balanceStmt.setInt(1, accountId);
-            ResultSet balanceRs = balanceStmt.executeQuery();
-            
-            if (balanceRs.next()) {
-                double currentBalance = balanceRs.getDouble("balance");
-                System.out.println("Current balance: $" + currentBalance);
+                JOptionPane.showMessageDialog(
+                    this,
+                    successMessage,
+                    "Withdrawal Submitted",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
                 
-                if (currentBalance < amount) {
-                    System.out.println("ERROR: Insufficient funds");
-                    JOptionPane.showMessageDialog(this, 
-                        "Insufficient funds. Current balance: $" + String.format("%.2f", currentBalance), 
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, accountId);
+                        dashboard.setVisible(true);
+                        dispose();
+                    }
+                });
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                        "Failed to process withdrawal. Please try again later.", 
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
-                    return false;
-                }
-            } else {
-                System.out.println("ERROR: Account not found");
+            }
+        }
+        
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this, "Please enter a valid number for the amount", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+// Generate a transaction ID
+private String generateTransactionId() {
+    return "WTH" + System.currentTimeMillis() % 10000000;
+}
+
+// Method to save transaction
+private boolean saveTransaction(double amount, String description) {
+    Connection conn = null;
+    try {
+        conn = DatabaseConnection.getConnection();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String currentDate = sdf.format(new Date());
+        
+        System.out.println("Creating withdrawal transaction:");
+        System.out.println("Account ID: " + accountId);
+        System.out.println("Amount: $" + amount);
+        System.out.println("Date: " + currentDate);
+        System.out.println("Description: " + description);
+
+        // Check if account has sufficient funds
+        String balanceQuery = "SELECT balance FROM accounts WHERE account_id = ?";
+        PreparedStatement balanceStmt = conn.prepareStatement(balanceQuery);
+        balanceStmt.setInt(1, accountId);
+        ResultSet balanceRs = balanceStmt.executeQuery();
+        
+        if (balanceRs.next()) {
+            double currentBalance = balanceRs.getDouble("balance");
+            System.out.println("Current balance: $" + currentBalance);
+            
+            if (currentBalance < amount) {
+                System.out.println("ERROR: Insufficient funds");
+                JOptionPane.showMessageDialog(this, 
+                    "Insufficient funds. Current balance: $" + String.format("%.2f", currentBalance), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
                 return false;
             }
-
-            // Insert the transaction with pending status
-            String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
-
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, accountId);
-            pstmt.setString(2, "Withdrawal");
-            pstmt.setDouble(3, amount);
-            pstmt.setString(4, currentDate);
-            pstmt.setString(5, description);
-            pstmt.setString(6, TransactionStatus.PENDING);
-
-            int rowsAffected = pstmt.executeUpdate();
-            pstmt.close();
-            
-            System.out.println("Transaction saved, rows affected: " + rowsAffected);
-            return rowsAffected > 0;
-
-        } catch (SQLException e) {
-            System.out.println("Error saving transaction: " + e.getMessage());
-            e.printStackTrace();
+        } else {
+            System.out.println("ERROR: Account not found");
             return false;
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+        }
+
+        // Insert the transaction with pending status
+        String sql = "INSERT INTO transactions (account_id, transaction_type, amount, transaction_date, description, status) " +
+                 "VALUES (?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, accountId);
+        pstmt.setString(2, "Withdrawal");
+        pstmt.setDouble(3, amount);
+        pstmt.setString(4, currentDate);
+        pstmt.setString(5, description);
+        pstmt.setString(6, TransactionStatus.PENDING);
+
+        int rowsAffected = pstmt.executeUpdate();
+        pstmt.close();
+        
+        System.out.println("Transaction saved, rows affected: " + rowsAffected);
+        return rowsAffected > 0;
+
+    } catch (SQLException e) {
+        System.out.println("Error saving transaction: " + e.getMessage());
+        e.printStackTrace();
+        return false;
+    } finally {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
+    }
+}
+
+// Custom rounded panel class - same as in Dashboard
+class RoundedPanel extends JPanel {
+    private int cornerRadius;
+    private Color backgroundColor;
+    
+    public RoundedPanel(int radius, Color bgColor) {
+        super();
+        this.cornerRadius = radius;
+        this.backgroundColor = bgColor;
+        setOpaque(false);
     }
     
-    // Custom rounded panel class - same as in Dashboard
-    class RoundedPanel extends JPanel {
-        private int cornerRadius;
-        private Color backgroundColor;
-        
-        public RoundedPanel(int radius, Color bgColor) {
-            super();
-            this.cornerRadius = radius;
-            this.backgroundColor = bgColor;
-            setOpaque(false);
-        }
-        
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g.create();
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setColor(backgroundColor);
-            g2d.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
-            g2d.dispose();
-        }
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setColor(backgroundColor);
+        g2d.fillRoundRect(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius);
+        g2d.dispose();
     }
+}
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Withdraw withdraw = new Withdraw();
-                withdraw.setUserInfo("John Doe", 12345);
-                withdraw.setVisible(true);
-            }
-        });
-    }
+public static void main(String[] args) {
+    SwingUtilities.invokeLater(new Runnable() {
+        @Override
+        public void run() {
+            Withdraw withdraw = new Withdraw();
+            withdraw.setUserInfo("John Doe", 12345);
+            withdraw.setVisible(true);
+        }
+    });
+}
 }
