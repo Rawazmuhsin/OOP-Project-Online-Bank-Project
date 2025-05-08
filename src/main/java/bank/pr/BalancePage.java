@@ -82,7 +82,7 @@ public class BalancePage extends JFrame {
     private List<JButton> menuButtons = new ArrayList<>();
     private JLabel lastUpdateLabel;
     private JPanel transactionListPanel;
-    private int  maxVisibleTransactions = 3; // Maximum number of transactions to show
+    private int maxVisibleTransactions = 3; // Maximum number of transactions to show
 
     // Default constructor
     public BalancePage() {
@@ -105,19 +105,19 @@ public class BalancePage extends JFrame {
         }
         
         setTitle("Kurdish-O-Banking (KOB) - Account Balance");
-        setSize(1100, 800);  // Optimized size to fit most screens without scrolling
+        setSize(1100, 700);  // Adjusted to match other pages
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(0, 0));  // No gap between components
         getContentPane().setBackground(BACKGROUND_COLOR);
         
-        // Create sidebar panel (narrower to save space)
+        // Create sidebar panel
         createSidebar();
         
-        // Create header panel (smaller to save space)
+        // Create header panel
         createHeaderPanel();
         
-        // Create main content (optimized for no scrolling)
+        // Create main content
         createCompactMainContent();
         
         // Make the window visible
@@ -143,29 +143,29 @@ public class BalancePage extends JFrame {
             }
         };
         
-        // Make sidebar narrower
-        sidebarPanel.setPreferredSize(new Dimension(180, getHeight()));
+        // Updated sidebar size to match other screens
+        sidebarPanel.setPreferredSize(new Dimension(240, getHeight()));
         sidebarPanel.setLayout(new BoxLayout(sidebarPanel, BoxLayout.Y_AXIS));
         
-        // Logo panel - more compact
+        // Logo panel
         JPanel logoPanel = new JPanel();
         logoPanel.setOpaque(false);
         logoPanel.setLayout(new BorderLayout());
-        logoPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+        logoPanel.setBorder(BorderFactory.createEmptyBorder(25, 15, 25, 15));
         
         JLabel bankName = new JLabel("Kurdish-O-Banking");
         bankName.setForeground(Color.WHITE);
-        bankName.setFont(new Font("SansSerif", Font.BOLD, 14));
+        bankName.setFont(new Font("SansSerif", Font.BOLD, 18));
         
         JLabel tagline = new JLabel("Your Future, Your Bank");
         tagline.setForeground(new Color(200, 200, 200));
-        tagline.setFont(new Font("SansSerif", Font.ITALIC, 10));
+        tagline.setFont(new Font("SansSerif", Font.ITALIC, 12));
         
         JPanel namePanel = new JPanel();
         namePanel.setOpaque(false);
         namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
         namePanel.add(bankName);
-        namePanel.add(Box.createVerticalStrut(2));
+        namePanel.add(Box.createVerticalStrut(3));
         namePanel.add(tagline);
         
         logoPanel.add(namePanel, BorderLayout.CENTER);
@@ -173,7 +173,7 @@ public class BalancePage extends JFrame {
         // Try to add logo image if available
         try {
             ImageIcon logoIcon = new ImageIcon("Logo/o1iwr2s2kskm9zqn7qr.png");
-            java.awt.Image image = logoIcon.getImage().getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
+            java.awt.Image image = logoIcon.getImage().getScaledInstance(40, 40, java.awt.Image.SCALE_SMOOTH);
             logoIcon = new ImageIcon(image);
             JLabel logoLabel = new JLabel(logoIcon);
             logoPanel.add(logoLabel, BorderLayout.WEST);
@@ -187,29 +187,55 @@ public class BalancePage extends JFrame {
         JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
         separator.setForeground(new Color(70, 80, 120));
         separator.setBackground(new Color(70, 80, 120));
-        separator.setMaximumSize(new Dimension(180, 1));
+        separator.setMaximumSize(new Dimension(220, 1));
+        separator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(separator);
-        sidebarPanel.add(Box.createVerticalStrut(10));
+        sidebarPanel.add(Box.createVerticalStrut(20));
         
-        // Menu items with icons - same as dashboard but more compact
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
-        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions",  "qrcode"};
+        // Create a panel to hold the menu buttons and center them
+        JPanel menuButtonsPanel = new JPanel();
+        menuButtonsPanel.setLayout(new BoxLayout(menuButtonsPanel, BoxLayout.Y_AXIS));
+        menuButtonsPanel.setOpaque(false);
+        menuButtonsPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // Menu items with icons - same as other pages
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "qrcode"};
         
         for (int i = 0; i < menuItems.length; i++) {
-            JButton button = createCompactMenuButton(menuItems[i], iconNames[i]);
+            JButton button = createMenuButton(menuItems[i], iconNames[i]);
             
             final String item = menuItems[i];
             button.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     handleButtonClick(item);
+                    updateSelectedButton(item);
                 }
             });
             
-            sidebarPanel.add(button);
+            // Center align the button
+            button.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Create a wrapper panel to center the button
+            JPanel buttonWrapper = new JPanel();
+            buttonWrapper.setLayout(new BoxLayout(buttonWrapper, BoxLayout.X_AXIS));
+            buttonWrapper.setOpaque(false);
+            buttonWrapper.setMaximumSize(new Dimension(220, 45));
+            buttonWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Add space before the button to center it
+            buttonWrapper.add(Box.createHorizontalGlue());
+            buttonWrapper.add(button);
+            buttonWrapper.add(Box.createHorizontalGlue());
+            
+            menuButtonsPanel.add(buttonWrapper);
+            menuButtonsPanel.add(Box.createVerticalStrut(5));
             menuButtons.add(button);
-            sidebarPanel.add(Box.createVerticalStrut(2));
         }
+        
+        // Add the menu buttons panel to the sidebar
+        sidebarPanel.add(menuButtonsPanel);
         
         // Set Balance as initially selected
         updateSelectedButton("Balance");
@@ -220,52 +246,73 @@ public class BalancePage extends JFrame {
         JSeparator bottomSeparator = new JSeparator(SwingConstants.HORIZONTAL);
         bottomSeparator.setForeground(new Color(70, 80, 120));
         bottomSeparator.setBackground(new Color(70, 80, 120));
-        bottomSeparator.setMaximumSize(new Dimension(180, 1));
+        bottomSeparator.setMaximumSize(new Dimension(220, 1));
+        bottomSeparator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(bottomSeparator);
         
-        JButton logoutButton = createCompactMenuButton("Logout", "logout");
-        logoutButton.addActionListener(e -> {
-            int choice = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to logout?",
-                "Logout Confirmation",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-            );
-            
-            if (choice == JOptionPane.YES_OPTION) {
-                dispose();
-                // Open login page
-                SwingUtilities.invokeLater(() -> {
-                    LoginUI loginPage = new LoginUI();
-                    loginPage.setVisible(true);
-                });
+        // Create logout button centered
+        JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int choice = JOptionPane.showConfirmDialog(
+                    BalancePage.this,
+                    "Are you sure you want to logout?",
+                    "Logout Confirmation",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                
+                if (choice == JOptionPane.YES_OPTION) {
+                    dispose();
+                    // Open login page
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            LoginUI loginPage = new LoginUI();
+                            loginPage.setVisible(true);
+                        }
+                    });
+                }
             }
         });
         
-        sidebarPanel.add(logoutButton);
-        sidebarPanel.add(Box.createVerticalStrut(10));
+        // Create wrapper for logout button to center it
+        JPanel logoutWrapper = new JPanel();
+        logoutWrapper.setLayout(new BoxLayout(logoutWrapper, BoxLayout.X_AXIS));
+        logoutWrapper.setOpaque(false);
+        logoutWrapper.setMaximumSize(new Dimension(220, 45));
+        logoutWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        logoutWrapper.add(Box.createHorizontalGlue());
+        logoutWrapper.add(logoutButton);
+        logoutWrapper.add(Box.createHorizontalGlue());
+        
+        sidebarPanel.add(logoutWrapper);
+        sidebarPanel.add(Box.createVerticalStrut(20));
         
         add(sidebarPanel, BorderLayout.WEST);
     }
     
-    private JButton createCompactMenuButton(String text, String iconName) {
+    private JButton createMenuButton(String text, String iconName) {
         JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setIconTextGap(8);
-        button.setMaximumSize(new Dimension(180, 35));
-        button.setPreferredSize(new Dimension(180, 35));
+        button.setHorizontalAlignment(SwingConstants.CENTER); // Changed from LEFT to CENTER
+        button.setIconTextGap(10);
+        button.setMaximumSize(new Dimension(180, 45)); // Reduced width to center better
+        button.setPreferredSize(new Dimension(180, 45)); // Reduced width to center better
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
-        button.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 5));
+        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Equal padding on all sides
         
         // Try to load icon if available
         try {
             ImageIcon icon = new ImageIcon("icons/" + iconName + ".png");
-            java.awt.Image image = icon.getImage().getScaledInstance(14, 14, java.awt.Image.SCALE_SMOOTH);
+            java.awt.Image image = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
             icon = new ImageIcon(image);
             button.setIcon(icon);
         } catch (Exception e) {
@@ -299,11 +346,11 @@ public class BalancePage extends JFrame {
             if (button.getText().equals(selectedItem)) {
                 button.setBackground(SECONDARY_COLOR);
                 button.setContentAreaFilled(true);
-                button.setFont(new Font("SansSerif", Font.BOLD, 13));
+                button.setFont(new Font("SansSerif", Font.BOLD, 14));
                 button.putClientProperty("selected", true);
             } else {
                 button.setContentAreaFilled(false);
-                button.setFont(new Font("SansSerif", Font.PLAIN, 13));
+                button.setFont(new Font("SansSerif", Font.PLAIN, 14));
                 button.putClientProperty("selected", false);
             }
         }
@@ -315,7 +362,7 @@ public class BalancePage extends JFrame {
         headerPanel.setBackground(CARD_COLOR);
         headerPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 220, 220)),
-            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+            BorderFactory.createEmptyBorder(15, 25, 15, 25)
         ));
         
         // Title panel
@@ -323,11 +370,11 @@ public class BalancePage extends JFrame {
         titlePanel.setOpaque(false);
         
         JLabel titleLabel = new JLabel("Account Balance");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 20));
         titleLabel.setForeground(TEXT_COLOR);
         
         JLabel subtitleLabel = new JLabel("Monitor and manage your balances");
-        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         subtitleLabel.setForeground(LIGHT_TEXT_COLOR);
         
         titlePanel.add(titleLabel, BorderLayout.NORTH);
@@ -344,12 +391,12 @@ public class BalancePage extends JFrame {
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm a");
         
         JLabel dateLabel = new JLabel(now.format(dateFormatter));
-        dateLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        dateLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         dateLabel.setForeground(TEXT_COLOR);
         dateLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         
         JLabel timeLabel = new JLabel(now.format(timeFormatter));
-        timeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        timeLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
         timeLabel.setForeground(LIGHT_TEXT_COLOR);
         timeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         
@@ -360,7 +407,6 @@ public class BalancePage extends JFrame {
         
         add(headerPanel, BorderLayout.NORTH);
     }
-    
     private void createCompactMainContent() {
         // Main container with GridBagLayout for precise control
         JPanel mainPanel = new JPanel(new GridBagLayout());
