@@ -42,6 +42,14 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.*;
+import java.io.FileOutputStream;
+import java.io.File;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 /**
  * This class displays all transactions for a specific customer account
  * Updated to match the ManagerDashboard design style
@@ -1019,6 +1027,10 @@ public class CustomerTransactions extends JFrame {
             e.printStackTrace();
         }
     }
+
+
+
+    
     
     /**
      * Shows a stylized filter applied message
