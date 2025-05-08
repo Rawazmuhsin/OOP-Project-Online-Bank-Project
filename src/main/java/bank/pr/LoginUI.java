@@ -15,10 +15,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Base64;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -432,6 +435,36 @@ public class LoginUI extends JFrame {
         }
     }
 
+    // Method to verify password with hashed version from database
+    private boolean verifyPassword(String inputPassword, String storedHashedPassword) {
+        try {
+            // Split the stored value to get salt and hash
+            String[] parts = storedHashedPassword.split(":");
+            
+            if (parts.length != 2) {
+                // If the stored password is not in the expected format (not hashed)
+                // This might be the case for legacy passwords or admin accounts
+                return inputPassword.equals(storedHashedPassword);
+            }
+            
+            byte[] salt = Base64.getDecoder().decode(parts[0]);
+            byte[] storedHash = Base64.getDecoder().decode(parts[1]);
+            
+            // Hash the input password with the same salt
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(salt);
+            byte[] inputHash = md.digest(inputPassword.getBytes());
+            
+            // Compare the two hashes
+            return MessageDigest.isEqual(storedHash, inputHash);
+        } catch (NoSuchAlgorithmException | IllegalArgumentException e) {
+            e.printStackTrace();
+            // If there's an error in verification, fall back to direct comparison
+            // This handles both legacy passwords and any errors in the hashing process
+            return inputPassword.equals(storedHashedPassword);
+        }
+    }
+
     private void attemptLogin() {
         String email = userField.getText();
         String password = new String(passField.getPassword());
@@ -474,47 +507,50 @@ public class LoginUI extends JFrame {
 
     private boolean attemptUserLogin(Connection conn, String email, String password) throws SQLException {
         // Query to get user account information by email
-        String query = "SELECT account_id, username, email FROM accounts WHERE email = ? AND password = ?";
+        String query = "SELECT account_id, username, email, password FROM accounts WHERE email = ?";
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setString(1, email);
-        stmt.setString(2, password);
 
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
             String userName = rs.getString("username");
             int userId = rs.getInt("account_id");
-
-            // Update last login time (optional)
-            try {
-                String updateQuery = "UPDATE accounts SET last_login = NOW() WHERE account_id = ?";
-                PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
-                updateStmt.setInt(1, userId);
-                updateStmt.executeUpdate();
-            } catch (SQLException ex) {
-                // Not critical if this fails, so just log it
-                System.err.println("Could not update last login time: " + ex.getMessage());
-            }
-
-            dispose();
-
-            // Create and show dashboard with user information
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    Dashbord dashboard = new Dashbord();
-                    dashboard.setUserInfo(userName, userId);
-                    dashboard.setVisible(true);
-                }
-            });
+            String storedPassword = rs.getString("password");
             
-            // Show welcome message for user
-            JOptionPane.showMessageDialog(null,
-                "Welcome, " + userName + "!",
-                "Login Successful",
-                JOptionPane.INFORMATION_MESSAGE);
+            // Use the password verification method
+            if (verifyPassword(password, storedPassword)) {
+                // Update last login time (optional)
+                try {
+                    String updateQuery = "UPDATE accounts SET last_login = NOW() WHERE account_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setInt(1, userId);
+                    updateStmt.executeUpdate();
+                } catch (SQLException ex) {
+                    // Not critical if this fails, so just log it
+                    System.err.println("Could not update last login time: " + ex.getMessage());
+                }
+
+                dispose();
+
+                // Create and show dashboard with user information
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Dashbord dashboard = new Dashbord();
+                        dashboard.setUserInfo(userName, userId);
+                        dashboard.setVisible(true);
+                    }
+                });
                 
-            return true;
+                // Show welcome message for user
+                JOptionPane.showMessageDialog(null,
+                    "Welcome, " + userName + "!",
+                    "Login Successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+                    
+                return true;
+            }
         }
         
         return false;
@@ -522,45 +558,48 @@ public class LoginUI extends JFrame {
     
     private boolean attemptAdminLogin(Connection conn, String email, String password) throws SQLException {
         // Query admin table by email
-        String query = "SELECT admin_id, username, first_name, last_name FROM admin WHERE email = ? AND password = ?";
+        String query = "SELECT admin_id, username, first_name, last_name, password FROM admin WHERE email = ?";
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setString(1, email);
-        stmt.setString(2, password);
 
         ResultSet rs = stmt.executeQuery();
 
         if (rs.next()) {
             int adminId = rs.getInt("admin_id");
             String adminName = rs.getString("first_name") + " " + rs.getString("last_name");
+            String storedPassword = rs.getString("password");
             
-            // Update last login time
-            try {
-                String updateQuery = "UPDATE admin SET last_login = NOW() WHERE admin_id = ?";
-                PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
-                updateStmt.setInt(1, adminId);
-                updateStmt.executeUpdate();
-            } catch (SQLException ex) {
-                // Not critical if this fails, so just log it
-                System.err.println("Could not update last login time: " + ex.getMessage());
-            }
-
-            dispose();
-
-            // Create and show the manager dashboard for admin users
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    new ManagerDashboard().setVisible(true);
+            // Use the password verification method
+            if (verifyPassword(password, storedPassword)) {
+                // Update last login time
+                try {
+                    String updateQuery = "UPDATE admin SET last_login = NOW() WHERE admin_id = ?";
+                    PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                    updateStmt.setInt(1, adminId);
+                    updateStmt.executeUpdate();
+                } catch (SQLException ex) {
+                    // Not critical if this fails, so just log it
+                    System.err.println("Could not update last login time: " + ex.getMessage());
                 }
-            });
-            
-            // Show welcome message for admin
-            JOptionPane.showMessageDialog(null,
-                "Welcome, " + adminName + "! (Admin)",
-                "Admin Login Successful",
-                JOptionPane.INFORMATION_MESSAGE);
-            
-            return true;
+
+                dispose();
+
+                // Create and show the manager dashboard for admin users
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        new ManagerDashboard().setVisible(true);
+                    }
+                });
+                
+                // Show welcome message for admin
+                JOptionPane.showMessageDialog(null,
+                    "Welcome, " + adminName + "! (Admin)",
+                    "Admin Login Successful",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                return true;
+            }
         }
         
         return false;
