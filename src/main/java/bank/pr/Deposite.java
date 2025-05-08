@@ -161,8 +161,15 @@ public class Deposite extends JFrame {
         separator.setForeground(new Color(70, 80, 120));
         separator.setBackground(new Color(70, 80, 120));
         separator.setMaximumSize(new Dimension(220, 1));
+        separator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(separator);
         sidebarPanel.add(Box.createVerticalStrut(20));
+        
+        // Create a panel to hold the menu buttons and center them
+        JPanel menuButtonsPanel = new JPanel();
+        menuButtonsPanel.setLayout(new BoxLayout(menuButtonsPanel, BoxLayout.Y_AXIS));
+        menuButtonsPanel.setOpaque(false);
+        menuButtonsPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Menu items with icons - Same as Dashboard for consistency
         String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "QR Codes"};
@@ -180,10 +187,28 @@ public class Deposite extends JFrame {
                 }
             });
             
-            sidebarPanel.add(button);
+            // Center align the button
+            button.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Create a wrapper panel to center the button
+            JPanel buttonWrapper = new JPanel();
+            buttonWrapper.setLayout(new BoxLayout(buttonWrapper, BoxLayout.X_AXIS));
+            buttonWrapper.setOpaque(false);
+            buttonWrapper.setMaximumSize(new Dimension(220, 45));
+            buttonWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+            
+            // Add space before the button to center it
+            buttonWrapper.add(Box.createHorizontalGlue());
+            buttonWrapper.add(button);
+            buttonWrapper.add(Box.createHorizontalGlue());
+            
+            menuButtonsPanel.add(buttonWrapper);
+            menuButtonsPanel.add(Box.createVerticalStrut(5));
             menuButtons.add(button);
-            sidebarPanel.add(Box.createVerticalStrut(5));
         }
+        
+        // Add the menu buttons panel to the sidebar
+        sidebarPanel.add(menuButtonsPanel);
         
         // Set Deposit as initially selected
         updateSelectedButton("Deposit");
@@ -195,9 +220,13 @@ public class Deposite extends JFrame {
         bottomSeparator.setForeground(new Color(70, 80, 120));
         bottomSeparator.setBackground(new Color(70, 80, 120));
         bottomSeparator.setMaximumSize(new Dimension(220, 1));
+        bottomSeparator.setAlignmentX(Component.CENTER_ALIGNMENT); // Center the separator
         sidebarPanel.add(bottomSeparator);
         
+        // Create logout button centered
         JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -223,7 +252,18 @@ public class Deposite extends JFrame {
             }
         });
         
-        sidebarPanel.add(logoutButton);
+        // Create wrapper for logout button to center it
+        JPanel logoutWrapper = new JPanel();
+        logoutWrapper.setLayout(new BoxLayout(logoutWrapper, BoxLayout.X_AXIS));
+        logoutWrapper.setOpaque(false);
+        logoutWrapper.setMaximumSize(new Dimension(220, 45));
+        logoutWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        logoutWrapper.add(Box.createHorizontalGlue());
+        logoutWrapper.add(logoutButton);
+        logoutWrapper.add(Box.createHorizontalGlue());
+        
+        sidebarPanel.add(logoutWrapper);
         sidebarPanel.add(Box.createVerticalStrut(20));
         
         add(sidebarPanel, BorderLayout.WEST);
@@ -231,16 +271,16 @@ public class Deposite extends JFrame {
     
     private JButton createMenuButton(String text, String iconName) {
         JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setHorizontalAlignment(SwingConstants.CENTER); // Changed from LEFT to CENTER
         button.setIconTextGap(10);
-        button.setMaximumSize(new Dimension(220, 45));
-        button.setPreferredSize(new Dimension(220, 45));
+        button.setMaximumSize(new Dimension(180, 45)); // Reduced width to center better
+        button.setPreferredSize(new Dimension(180, 45)); // Reduced width to center better
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setContentAreaFilled(false);
         button.setFont(new Font("SansSerif", Font.PLAIN, 14));
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Equal padding on all sides
         
         // Try to load icon if available
         try {
@@ -662,6 +702,7 @@ public class Deposite extends JFrame {
             }
         }
     }
+    
     
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
