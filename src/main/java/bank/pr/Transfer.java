@@ -173,27 +173,28 @@ public class Transfer extends JFrame {
         sidebarPanel.add(Box.createVerticalStrut(20));
         
         // Menu items with icons - Same as Dashboard for consistency
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
-        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
-        
-        for (int i = 0; i < menuItems.length; i++) {
-            JButton button = createMenuButton(menuItems[i], iconNames[i]);
-            
-            final String item = menuItems[i];
-            button.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    handleButtonClick(item);
-                    updateSelectedButton(item);
-                }
-            });
-            
-            sidebarPanel.add(button);
-            menuButtons.add(button);
-            sidebarPanel.add(Box.createVerticalStrut(5));
+       // Menu items with icons - Same as Dashboard for consistency
+String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
+String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions",  "qrcode"};
+
+for (int i = 0; i < menuItems.length; i++) {
+    JButton button = createMenuButton(menuItems[i], iconNames[i]);
+    // Add this line to center align the button in the sidebar
+    button.setAlignmentX(Component.CENTER_ALIGNMENT);
+    
+    final String item = menuItems[i];
+    button.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            handleButtonClick(item);
+            updateSelectedButton(item);
         }
-        
-        // Set Transfers as initially selected
+    });
+    
+    sidebarPanel.add(button);
+    menuButtons.add(button);
+    sidebarPanel.add(Box.createVerticalStrut(5));
+}
         updateSelectedButton("Transfers");
         
         // Add logout at bottom
@@ -206,6 +207,8 @@ public class Transfer extends JFrame {
         sidebarPanel.add(bottomSeparator);
         
         JButton logoutButton = createMenuButton("Logout", "logout");
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -239,7 +242,8 @@ public class Transfer extends JFrame {
     
     private JButton createMenuButton(String text, String iconName) {
         JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
+        // Change from LEFT to CENTER alignment
+        button.setHorizontalAlignment(SwingConstants.CENTER);
         button.setIconTextGap(10);
         button.setMaximumSize(new Dimension(220, 45));
         button.setPreferredSize(new Dimension(220, 45));
@@ -248,7 +252,8 @@ public class Transfer extends JFrame {
         button.setContentAreaFilled(false);
         button.setFont(new Font("SansSerif", Font.PLAIN, 14));
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        // Change border padding to be equal on both sides
+        button.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         
         // Try to load icon if available
         try {
@@ -256,6 +261,9 @@ public class Transfer extends JFrame {
             java.awt.Image image = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
             icon = new ImageIcon(image);
             button.setIcon(icon);
+            // Center the text position relative to the icon
+            button.setHorizontalTextPosition(SwingConstants.RIGHT);
+            button.setVerticalTextPosition(SwingConstants.CENTER);
         } catch (Exception e) {
             // If icon not found, use text only
             System.err.println("Icon not found: " + iconName);
@@ -660,6 +668,8 @@ public class Transfer extends JFrame {
         button.setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
         button.setOpaque(true);  
         button.setBorderPainted(false);  
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         
         return button;
     }
@@ -973,10 +983,7 @@ public class Transfer extends JFrame {
                     }
                 });
                 break;
-            case "Cards":
-                // Cards feature not implemented yet
-                JOptionPane.showMessageDialog(this, "Cards feature coming soon!", "Information", JOptionPane.INFORMATION_MESSAGE);
-                break;
+         
             default:
                 break;
         }

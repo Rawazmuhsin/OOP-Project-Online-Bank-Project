@@ -105,7 +105,7 @@ public class BalancePage extends JFrame {
         }
         
         setTitle("Kurdish-O-Banking (KOB) - Account Balance");
-        setSize(1024, 650);  // Optimized size to fit most screens without scrolling
+        setSize(1100, 800);  // Optimized size to fit most screens without scrolling
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(0, 0));  // No gap between components
@@ -192,8 +192,8 @@ public class BalancePage extends JFrame {
         sidebarPanel.add(Box.createVerticalStrut(10));
         
         // Menu items with icons - same as dashboard but more compact
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
-        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions",  "qrcode"};
         
         for (int i = 0; i < menuItems.length; i++) {
             JButton button = createCompactMenuButton(menuItems[i], iconNames[i]);

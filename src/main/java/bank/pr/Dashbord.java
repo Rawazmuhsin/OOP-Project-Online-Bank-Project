@@ -228,10 +228,10 @@ public class Dashbord extends JFrame {
         
         add(sidebarPanel, BorderLayout.WEST);
     }
-    
     private JButton createMenuButton(String text, String iconName) {
         JButton button = new JButton(text);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
+        // Change from LEFT to CENTER alignment
+        button.setHorizontalAlignment(SwingConstants.CENTER);
         button.setIconTextGap(10);
         button.setMaximumSize(new Dimension(220, 45));
         button.setPreferredSize(new Dimension(220, 45));
@@ -240,14 +240,18 @@ public class Dashbord extends JFrame {
         button.setContentAreaFilled(false);
         button.setFont(new Font("SansSerif", Font.PLAIN, 14));
         button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 25, 10, 10));
+        // Use even padding on both sides (left/right)
+        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
         
-        // Try to load icon if available
         try {
             ImageIcon icon = new ImageIcon("icons/" + iconName + ".png");
             java.awt.Image image = icon.getImage().getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH);
             icon = new ImageIcon(image);
             button.setIcon(icon);
+            // Center the text and icon together
+            button.setHorizontalTextPosition(SwingConstants.RIGHT);
+            button.setVerticalTextPosition(SwingConstants.CENTER);
         } catch (Exception e) {
             // If icon not found, use text only
             System.err.println("Icon not found: " + iconName);
@@ -940,6 +944,8 @@ public class Dashbord extends JFrame {
         exportButton.setForeground(Color.WHITE);
         exportButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         exportButton.setFocusPainted(false);
+        exportButton.setOpaque(true);  
+        exportButton.setBorderPainted(false);  
         exportButton.addActionListener(e -> {
             if (qrImage != null) {
                 saveQRCodeToFile(qrImage, userName + "_" + accountType + "_" + accountId);
@@ -1048,9 +1054,14 @@ public class Dashbord extends JFrame {
                     this.dispose();
                 });
                 break;
-            case "Cards":
+                case "Cards":
                 // Go to cards page
-                JOptionPane.showMessageDialog(this, "Cards feature coming soon!");
+                SwingUtilities.invokeLater(() -> {
+                    Cards cardsScreen = new Cards();
+                    cardsScreen.setUserInfo(userName, userId);
+                    cardsScreen.setVisible(true);
+                    this.dispose();
+                });
                 break;
             case "QR Codes":
                 // Show QR Codes tab

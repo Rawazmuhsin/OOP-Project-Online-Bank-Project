@@ -165,8 +165,8 @@ public class Withdraw extends JFrame {
         sidebarPanel.add(Box.createVerticalStrut(20));
         
         // Menu items with icons - Same as Dashboard for consistency
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
-        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "qrcode"};
         
         for (int i = 0; i < menuItems.length; i++) {
             JButton button = createMenuButton(menuItems[i], iconNames[i]);

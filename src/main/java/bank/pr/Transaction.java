@@ -228,8 +228,8 @@ public class Transaction extends JFrame {
         sidebarPanel.add(Box.createVerticalStrut(20));
         
         // Menu items with icons
-        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions", "Cards", "QR Codes"};
-        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions", "cards", "qrcode"};
+        String[] menuItems = {"Dashboard", "Balance", "Accounts", "Deposit", "Withdraw", "Transfers", "Transactions",  "QR Codes"};
+        String[] iconNames = {"dashboard", "balance", "accounts", "deposit", "withdraw", "transfers", "transactions",  "qrcode"};
         
         for (int i = 0; i < menuItems.length; i++) {
             JButton button = createMenuButton(menuItems[i], iconNames[i]);
@@ -615,7 +615,25 @@ public class Transaction extends JFrame {
             String dateStr = dateFormat.format(transaction.date);
             String descriptionStr = transaction.description;
             String categoryStr = transaction.category;
-            String amountStr = (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount);
+            
+            // Determine if this is a purchase transaction by category or description
+            boolean isPurchase = "purchase".equalsIgnoreCase(categoryStr) || 
+                                descriptionStr.toLowerCase().contains("purchase");
+            
+            // Format amount string and determine color
+            Color amountColor;
+            String amountStr;
+            
+            if (isPurchase) {
+                // Format purchase transactions like withdrawals (negative amount)
+                amountStr = String.format("-$%.2f", Math.abs(transaction.amount));
+                amountColor = ERROR_COLOR; // Use the same color as withdrawals/negative transactions
+            } else {
+                // Format other transactions normally
+                amountStr = (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount);
+                amountColor = transaction.amount >= 0 ? SUCCESS_COLOR : ERROR_COLOR;
+            }
+            
             String balanceStr = String.format("$%.2f", transaction.balance);
             
             // Create labels for each cell
@@ -633,7 +651,7 @@ public class Transaction extends JFrame {
             
             JLabel amountLabel = new JLabel(amountStr);
             amountLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
-            amountLabel.setForeground(transaction.amount >= 0 ? SUCCESS_COLOR : ERROR_COLOR);
+            amountLabel.setForeground(amountColor);
             
             JLabel balanceLabel = new JLabel(balanceStr);
             balanceLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -659,7 +677,6 @@ public class Transaction extends JFrame {
             }
         }
     }
-    
     private void addTransactionSummary(JPanel container, ArrayList<TransactionItem> transactions) {
         // Calculate summary statistics
         int totalTransactions = transactions.size();
@@ -722,147 +739,162 @@ public class Transaction extends JFrame {
         return panel;
     }
     
-    /**
-     * Export transactions to PDF file
-     */
-  /**
- * Export transactions to PDF file
- */
-private void exportTransactionsToPDF() {
-    if (currentTransactions == null || currentTransactions.isEmpty()) {
-        JOptionPane.showMessageDialog(this, 
-            "No transactions to export.", 
-            "Export Error", 
-            JOptionPane.WARNING_MESSAGE);
-        return;
-    }
-    
-    // Ask user to choose file location
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setDialogTitle("Save Transactions as PDF");
-    fileChooser.setSelectedFile(new File(userName + "_transactions.pdf"));
-    fileChooser.setFileFilter(new FileNameExtensionFilter("PDF Files", "pdf"));
-    
-    int userSelection = fileChooser.showSaveDialog(this);
-    
-    if (userSelection == JFileChooser.APPROVE_OPTION) {
-        File fileToSave = fileChooser.getSelectedFile();
-        
-        // Ensure the file has .pdf extension
-        if (!fileToSave.getName().toLowerCase().endsWith(".pdf")) {
-            fileToSave = new File(fileToSave.getAbsolutePath() + ".pdf");
-        }
-        
-        // Create and show progress dialog
-        JOptionPane.showMessageDialog(this, 
-            "Preparing to export transactions to PDF...", 
-            "Export Started", 
-            JOptionPane.INFORMATION_MESSAGE);
-      
-        try {
-            // Create document
-            Document document = new Document();
-            PdfWriter.getInstance(document, new FileOutputStream(fileToSave));
-            document.open();
-            
-            // Add title
-            Paragraph title = new Paragraph("Transaction History for " + userName,
-                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.BLACK));
-            title.setAlignment(Element.ALIGN_CENTER);
-            document.add(title);
-            
-            // Add date
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy");
-            Paragraph dateStr = new Paragraph("Generated on " + dateFormat.format(new Date()),
-                FontFactory.getFont(FontFactory.HELVETICA, 12, BaseColor.GRAY));
-            dateStr.setAlignment(Element.ALIGN_CENTER);
-            document.add(dateStr);
-            document.add(new Paragraph(" ")); // Empty line
-            
-            // Create table
-            PdfPTable table = new PdfPTable(5); // 5 columns
-            table.setWidthPercentage(100);
-            
-            // Set column widths
-            float[] columnWidths = {2f, 4f, 2f, 2f, 2f};
-            table.setWidths(columnWidths);
-            
-            // Add table headers
-            String[] headers = {"Date", "Description", "Category", "Amount", "Balance"};
-            for (String header : headers) {
-                PdfPCell cell = new PdfPCell(new Phrase(header, 
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
-                cell.setBackgroundColor(new BaseColor(240, 240, 240));
-                cell.setPadding(5);
-                table.addCell(cell);
-            }
-            
-            // Add data rows
-            SimpleDateFormat pdfDateFormat = new SimpleDateFormat("MM/dd/yyyy");
-            for (TransactionItem transaction : currentTransactions) {
-                // Date
-                table.addCell(new Phrase(pdfDateFormat.format(transaction.date)));
-                
-                // Description
-                table.addCell(new Phrase(transaction.description));
-                
-                // Category
-                table.addCell(new Phrase(transaction.category));
-                
-                // Amount (with color)
-                Phrase amountPhrase = new Phrase(
-                    (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount),
-                    FontFactory.getFont(FontFactory.HELVETICA, 12, 
-                        transaction.amount >= 0 ? BaseColor.GREEN : BaseColor.RED)
-                );
-                table.addCell(amountPhrase);
-                
-                // Balance
-                table.addCell(new Phrase(String.format("$%.2f", transaction.balance)));
-            }
-            
-            document.add(table);
-            
-            // Add summary section
-            document.add(new Paragraph(" ")); // Empty line
-            document.add(new Paragraph("Transaction Summary", 
-                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
-            
-            // Calculate summary info
-            int totalTransactions = currentTransactions.size();
-            double totalDeposits = 0;
-            double totalWithdrawals = 0;
-            
-            for (TransactionItem transaction : currentTransactions) {
-                if (transaction.amount > 0) {
-                    totalDeposits += transaction.amount;
-                } else if (transaction.amount < 0) {
-                    totalWithdrawals += Math.abs(transaction.amount);
-                }
-            }
-            
-            // Add summary details
-            document.add(new Paragraph("Total Transactions: " + totalTransactions));
-            document.add(new Paragraph("Total Deposits: $" + String.format("%.2f", totalDeposits)));
-            document.add(new Paragraph("Total Withdrawals: $" + String.format("%.2f", totalWithdrawals)));
-            
-            // Close document
-            document.close();
-            
+    private void exportTransactionsToPDF() {
+        if (currentTransactions == null || currentTransactions.isEmpty()) {
             JOptionPane.showMessageDialog(this, 
-                "Transactions successfully exported to:\n" + fileToSave.getAbsolutePath(),
-                "Export Complete", 
-                JOptionPane.INFORMATION_MESSAGE);
-            
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Error exporting transactions: " + e.getMessage(), 
+                "No transactions to export.", 
                 "Export Error", 
-                JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Ask user to choose file location
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Transactions as PDF");
+        fileChooser.setSelectedFile(new File(userName + "_transactions.pdf"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("PDF Files", "pdf"));
+        
+        int userSelection = fileChooser.showSaveDialog(this);
+        
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            
+            // Ensure the file has .pdf extension
+            if (!fileToSave.getName().toLowerCase().endsWith(".pdf")) {
+                fileToSave = new File(fileToSave.getAbsolutePath() + ".pdf");
+            }
+            
+            // Create and show progress dialog
+            JOptionPane.showMessageDialog(this, 
+                "Preparing to export transactions to PDF...", 
+                "Export Started", 
+                JOptionPane.INFORMATION_MESSAGE);
+          
+            try {
+                // Create document
+                Document document = new Document();
+                PdfWriter.getInstance(document, new FileOutputStream(fileToSave));
+                document.open();
+                
+                // Add title
+                Paragraph title = new Paragraph("Transaction History for " + userName,
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.BLACK));
+                title.setAlignment(Element.ALIGN_CENTER);
+                document.add(title);
+                
+                // Add date
+                SimpleDateFormat dateFormat = new SimpleDateFormat("MMMM dd, yyyy");
+                Paragraph dateStr = new Paragraph("Generated on " + dateFormat.format(new Date()),
+                    FontFactory.getFont(FontFactory.HELVETICA, 12, BaseColor.GRAY));
+                dateStr.setAlignment(Element.ALIGN_CENTER);
+                document.add(dateStr);
+                document.add(new Paragraph(" ")); // Empty line
+                
+                // Create table
+                PdfPTable table = new PdfPTable(5); // 5 columns
+                table.setWidthPercentage(100);
+                
+                // Set column widths
+                float[] columnWidths = {2f, 4f, 2f, 2f, 2f};
+                table.setWidths(columnWidths);
+                
+                // Add table headers
+                String[] headers = {"Date", "Description", "Category", "Amount", "Balance"};
+                for (String header : headers) {
+                    PdfPCell cell = new PdfPCell(new Phrase(header, 
+                        FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+                    cell.setBackgroundColor(new BaseColor(240, 240, 240));
+                    cell.setPadding(5);
+                    table.addCell(cell);
+                }
+                
+                // Add data rows
+                SimpleDateFormat pdfDateFormat = new SimpleDateFormat("MM/dd/yyyy");
+                for (TransactionItem transaction : currentTransactions) {
+                    // Date
+                    table.addCell(new Phrase(pdfDateFormat.format(transaction.date)));
+                    
+                    // Description
+                    table.addCell(new Phrase(transaction.description));
+                    
+                    // Category
+                    table.addCell(new Phrase(transaction.category));
+                    
+                    // Amount (with color)
+                    boolean isPurchase = "purchase".equalsIgnoreCase(transaction.category) || 
+                                       transaction.description.toLowerCase().contains("purchase");
+                    
+                    Phrase amountPhrase;
+                    if (isPurchase) {
+                        // Format purchase transactions like withdrawals
+                        amountPhrase = new Phrase(
+                            String.format("-$%.2f", Math.abs(transaction.amount)),
+                            FontFactory.getFont(FontFactory.HELVETICA, 12, BaseColor.RED)
+                        );
+                    } else {
+                        // Format other transactions normally
+                        amountPhrase = new Phrase(
+                            (transaction.amount >= 0 ? "+" : "") + String.format("$%.2f", transaction.amount),
+                            FontFactory.getFont(FontFactory.HELVETICA, 12, 
+                                transaction.amount >= 0 ? BaseColor.GREEN : BaseColor.RED)
+                        );
+                    }
+                    table.addCell(amountPhrase);
+                    
+                    // Balance
+                    table.addCell(new Phrase(String.format("$%.2f", transaction.balance)));
+                }
+                
+                document.add(table);
+                
+                // Add summary section
+                document.add(new Paragraph(" ")); // Empty line
+                document.add(new Paragraph("Transaction Summary", 
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+                
+                // Calculate summary info
+                int totalTransactions = currentTransactions.size();
+                double totalDeposits = 0;
+                double totalWithdrawals = 0;
+                double totalPurchases = 0;
+                
+                for (TransactionItem transaction : currentTransactions) {
+                    boolean isPurchase = "purchase".equalsIgnoreCase(transaction.category) || 
+                                       transaction.description.toLowerCase().contains("purchase");
+                    
+                    if (isPurchase) {
+                        totalPurchases += Math.abs(transaction.amount);
+                    } else if (transaction.amount > 0) {
+                        totalDeposits += transaction.amount;
+                    } else if (transaction.amount < 0) {
+                        totalWithdrawals += Math.abs(transaction.amount);
+                    }
+                }
+                
+                // Add summary details
+                document.add(new Paragraph("Total Transactions: " + totalTransactions));
+                document.add(new Paragraph("Total Deposits: $" + String.format("%.2f", totalDeposits)));
+                document.add(new Paragraph("Total Withdrawals: $" + String.format("%.2f", totalWithdrawals)));
+                document.add(new Paragraph("Total Purchases: $" + String.format("%.2f", totalPurchases)));
+                
+                // Close document
+                document.close();
+                
+                JOptionPane.showMessageDialog(this, 
+                    "Transactions successfully exported to:\n" + fileToSave.getAbsolutePath(),
+                    "Export Complete", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error exporting transactions: " + e.getMessage(), 
+                    "Export Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
         }
     }
-}
+
     private void handleButtonClick(String buttonName) {
         System.out.println("Button clicked: " + buttonName);
         

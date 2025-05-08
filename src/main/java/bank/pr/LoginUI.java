@@ -242,7 +242,8 @@ public class LoginUI extends JFrame {
         loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loginButton.setMaximumSize(new Dimension(400, 50));
         loginButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+        loginButton.setOpaque(true);  
+        loginButton.setBorderPainted(false);  
         // Add hover effect
         loginButton.addMouseListener(new MouseAdapter() {
             @Override
