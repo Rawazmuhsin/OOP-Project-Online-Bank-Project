@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -44,12 +45,19 @@ import javax.swing.table.JTableHeader;
 
 import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Image;
+
 import java.io.FileOutputStream;
 import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
 /**
  * This class displays all transactions for a specific customer account
  * Updated to match the ManagerDashboard design style
@@ -519,11 +527,9 @@ public class CustomerTransactions extends JFrame {
             }
         });
         
+        // Update export button action to use the new PDF export method
         exportButton.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this, 
-                "Export functionality coming soon!",
-                "Feature Coming Soon", 
-                JOptionPane.INFORMATION_MESSAGE);
+            exportTransactionsToPDF();
         });
         
         // Add buttons to action panel
@@ -706,7 +712,7 @@ public class CustomerTransactions extends JFrame {
                         table, value, isSelected, hasFocus, row, column);
                 
                 // Try to parse and reformat the date for better display
-                if (value != null && !value.equals("N/A")) {
+                if (value != null && !value.equals("N/A")){
                     try {
                         SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         Date date = inputFormat.parse(value.toString());
@@ -1028,10 +1034,6 @@ public class CustomerTransactions extends JFrame {
         }
     }
 
-
-
-    
-    
     /**
      * Shows a stylized filter applied message
      */
@@ -1109,6 +1111,370 @@ public class CustomerTransactions extends JFrame {
                 SwingUtilities.invokeLater(() -> new CustomerAccounts(adminId).setVisible(true));
         }
     }
+   
+/**
+ * Export the current transaction data to a PDF file
+ * Uses the same style and approach as ManageTransaction class
+ */
+private void exportTransactionsToPDF() {
+    // Check if there's data to export
+    if (tableModel.getRowCount() == 0 || 
+        (tableModel.getRowCount() == 1 && tableModel.getValueAt(0, 0).toString().contains("No"))) {
+        JOptionPane.showMessageDialog(this,
+            "No data available to export.",
+            "Export Error",
+            JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+    
+    // Create file chooser dialog
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Save PDF File");
+    
+    // Set default filename with timestamp and account ID
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+    String defaultFileName = "account_" + accountId + "_transactions_" + dateFormat.format(new Date()) + ".pdf";
+    fileChooser.setSelectedFile(new File(defaultFileName));
+    
+    // Set file filter to only show PDF files
+    FileNameExtensionFilter pdfFilter = new FileNameExtensionFilter("PDF Files (*.pdf)", "pdf");
+    fileChooser.setFileFilter(pdfFilter);
+    
+    // Show save dialog
+    int userSelection = fileChooser.showSaveDialog(this);
+    
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+        
+        // Add .pdf extension if not present
+        if (!fileToSave.getName().toLowerCase().endsWith(".pdf")) {
+            fileToSave = new File(fileToSave.getAbsolutePath() + ".pdf");
+        }
+        
+        // Check if file already exists and confirm overwrite
+        if (fileToSave.exists()) {
+            int response = JOptionPane.showConfirmDialog(this,
+                "The file " + fileToSave.getName() + " already exists. Do you want to overwrite it?",
+                "Confirm Overwrite",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+            
+            if (response != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+        
+        try {
+            // Create PDF document
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, new FileOutputStream(fileToSave));
+            document.open();
+            
+            // Add title
+            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 16, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph("Transaction Report", titleFont);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            title.setSpacingAfter(10);
+            document.add(title);
+            
+            // Add timestamp
+            com.itextpdf.text.Font smallFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 8);
+            com.itextpdf.text.Paragraph timestamp = new com.itextpdf.text.Paragraph(
+                "Report generated on: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) + 
+                " by " + adminName, 
+                smallFont);
+            timestamp.setAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+            timestamp.setSpacingAfter(20);
+            document.add(timestamp);
+            
+            // Add account information section
+            com.itextpdf.text.Font sectionFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 12, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Paragraph accountSection = new com.itextpdf.text.Paragraph("Account Information", sectionFont);
+            accountSection.setSpacingAfter(10);
+            document.add(accountSection);
+            
+            // Create table for account information
+            com.itextpdf.text.pdf.PdfPTable accountTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            accountTable.setWidthPercentage(100);
+            accountTable.setSpacingAfter(20);
+            
+            // Add account information
+            com.itextpdf.text.Font labelFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font valueFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10);
+            
+            addAccountTableRow(accountTable, "Account Holder:", customerName, labelFont, valueFont);
+            addAccountTableRow(accountTable, "Account ID:", String.valueOf(accountId), labelFont, valueFont);
+            addAccountTableRow(accountTable, "Account Type:", accountType, labelFont, valueFont);
+            addAccountTableRow(accountTable, "Current Balance:", new DecimalFormat("$#,##0.00").format(accountBalance), labelFont, valueFont);
+            
+            document.add(accountTable);
+            
+            // Add transactions section
+            com.itextpdf.text.Paragraph transactionsSection = new com.itextpdf.text.Paragraph("Transaction History", sectionFont);
+            transactionsSection.setSpacingAfter(10);
+            document.add(transactionsSection);
+            
+            // Create table for transactions
+            com.itextpdf.text.pdf.PdfPTable pdfTable = new com.itextpdf.text.pdf.PdfPTable(tableModel.getColumnCount());
+            pdfTable.setWidthPercentage(100);
+            
+            // Set column widths (percentages)
+            float[] columnWidths = {1.0f, 1.0f, 1.2f, 1.5f, 2.5f, 1.2f, 1.5f};
+            pdfTable.setWidths(columnWidths);
+            
+            // Define fonts for headers and data
+            com.itextpdf.text.Font headerFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font dataFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 9);
+            
+            // Add table headers
+            String[] columnNames = {"TRANSACTION ID", "TYPE", "AMOUNT", "DATE", "DESCRIPTION", "STATUS", "APPROVAL DATE"};
+            for (String columnName : columnNames) {
+                com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell(
+                    new com.itextpdf.text.Phrase(columnName, headerFont));
+                cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                cell.setBackgroundColor(new com.itextpdf.text.BaseColor(20, 30, 70)); // PRIMARY_COLOR
+                cell.setPadding(5);
+                cell.setVerticalAlignment(com.itextpdf.text.Element.ALIGN_MIDDLE);
+                // Set text color to white for readability against dark background
+                cell.setPhrase(new com.itextpdf.text.Phrase(columnName, 
+                    new com.itextpdf.text.Font(headerFont.getFamily(), headerFont.getSize(), 
+                    headerFont.getStyle(), com.itextpdf.text.BaseColor.WHITE)));
+                pdfTable.addCell(cell);
+            }
+            
+            // Add data rows
+            for (int row = 0; row < tableModel.getRowCount(); row++) {
+                // Skip "No transactions found" row
+                if (tableModel.getValueAt(row, 0) instanceof String && 
+                    ((String)tableModel.getValueAt(row, 0)).contains("No")) {
+                    continue;
+                }
+                
+                // Add transaction data to PDF table
+                // Set alternating row colors for better readability
+                com.itextpdf.text.BaseColor rowColor = (row % 2 == 0) 
+                    ? new com.itextpdf.text.BaseColor(245, 247, 250) // Light gray
+                    : new com.itextpdf.text.BaseColor(255, 255, 255); // White
+                
+                for (int col = 0; col < tableModel.getColumnCount(); col++) {
+                    // Get value from table model
+                    Object value = tableModel.getValueAt(row, col);
+                    String cellText = value != null ? value.toString() : "";
+                    
+                    // Create cell with data
+                    com.itextpdf.text.pdf.PdfPCell cell = new com.itextpdf.text.pdf.PdfPCell();
+                    cell.setBackgroundColor(rowColor);
+                    cell.setPadding(5);
+                    
+                    // Format amount column
+                    if (col == 2) { // Amount column
+                        String type = tableModel.getValueAt(row, 1).toString();
+                        double amount = 0;
+                        try {
+                            // Remove currency symbols for parsing
+                            amount = Double.parseDouble(cellText.replace("$", "").replace(",", ""));
+                        } catch (Exception e) {
+                            // Use 0 if parsing fails
+                        }
+                        
+                        // Set color based on transaction type
+                        com.itextpdf.text.BaseColor amountColor;
+                        if (type.equals("Withdrawal") || (type.contains("Transfer") && !type.contains("from"))) {
+                            // Negative amount for withdrawals and outgoing transfers
+                            cellText = new DecimalFormat("$#,##0.00").format(-Math.abs(amount));
+                            amountColor = new com.itextpdf.text.BaseColor(220, 53, 69); // Red
+                        } else {
+                            // Positive for deposits and incoming transfers
+                            cellText = new DecimalFormat("$#,##0.00").format(Math.abs(amount));
+                            amountColor = new com.itextpdf.text.BaseColor(25, 135, 84); // Green
+                        }
+                        
+                        // Create font with color
+                        com.itextpdf.text.Font amountFont = new com.itextpdf.text.Font(dataFont);
+                        amountFont.setColor(amountColor);
+                        
+                        cell.setPhrase(new com.itextpdf.text.Phrase(cellText, amountFont));
+                        cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_RIGHT);
+                    }
+                    // Format date columns
+                    else if (col == 3 || col == 6) { // Date columns
+                        if (!cellText.equals("N/A")) {
+                            try {
+                                SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                Date date = inputFormat.parse(cellText);
+                                cellText = new SimpleDateFormat("MMM dd, yyyy HH:mm").format(date);
+                            } catch (Exception e) {
+                                // Keep original if parsing fails
+                            }
+                        }
+                        cell.setPhrase(new com.itextpdf.text.Phrase(cellText, dataFont));
+                        cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                    }
+                    // Format status column
+                    else if (col == 5) { // Status column
+                        com.itextpdf.text.Font statusFont = new com.itextpdf.text.Font(dataFont);
+                        com.itextpdf.text.BaseColor statusColor;
+                        
+                        if ("APPROVED".equals(cellText)) {
+                            statusColor = new com.itextpdf.text.BaseColor(25, 135, 84); // Green
+                        } else if ("PENDING".equals(cellText)) {
+                            statusColor = new com.itextpdf.text.BaseColor(255, 193, 7); // Yellow
+                        } else {
+                            statusColor = new com.itextpdf.text.BaseColor(220, 53, 69); // Red
+                        }
+                        
+                        statusFont.setColor(statusColor);
+                        cell.setPhrase(new com.itextpdf.text.Phrase(cellText, statusFont));
+                        cell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+                    }
+                    // Default formatting for other columns
+                    else {
+                        cell.setPhrase(new com.itextpdf.text.Phrase(cellText, dataFont));
+                        cell.setHorizontalAlignment(col == 0 ? com.itextpdf.text.Element.ALIGN_CENTER : 
+                                                   com.itextpdf.text.Element.ALIGN_LEFT);
+                    }
+                    
+                    pdfTable.addCell(cell);
+                }
+            }
+            
+            document.add(pdfTable);
+            
+            // Add transaction summary
+            com.itextpdf.text.Paragraph summarySection = new com.itextpdf.text.Paragraph("Transaction Summary", sectionFont);
+            summarySection.setSpacingBefore(20);
+            summarySection.setSpacingAfter(10);
+            document.add(summarySection);
+            
+            // Calculate summary statistics
+            int totalTransactions = tableModel.getRowCount();
+            double totalDeposits = 0;
+            double totalWithdrawals = 0;
+            
+            for (int row = 0; row < tableModel.getRowCount(); row++) {
+                // Skip "No transactions found" row
+                if (tableModel.getValueAt(row, 0) instanceof String && 
+                    ((String)tableModel.getValueAt(row, 0)).contains("No")) {
+                    continue;
+                }
+                
+                try {
+                    String type = tableModel.getValueAt(row, 1).toString();
+                    String amountStr = tableModel.getValueAt(row, 2).toString();
+                    
+                    // Parse amount (remove currency symbols)
+                    double amount = Double.parseDouble(amountStr.replace("$", "")
+                                                               .replace(",", "")
+                                                               .replace("+", "")
+                                                               .replace("-", ""));
+                    
+                    if (type.equals("Deposit") || type.contains("Transfer from")) {
+                        totalDeposits += amount;
+                    } else {
+                        totalWithdrawals += amount;
+                    }
+                } catch (Exception e) {
+                    // Skip if parsing fails
+                }
+            }
+            
+            // Create summary table
+            com.itextpdf.text.pdf.PdfPTable summaryTable = new com.itextpdf.text.pdf.PdfPTable(2);
+            summaryTable.setWidthPercentage(60);
+            summaryTable.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_LEFT);
+            summaryTable.setSpacingAfter(20);
+            
+            // Set column widths for summary table
+            float[] summaryWidths = {1.5f, 1.0f};
+            summaryTable.setWidths(summaryWidths);
+            
+            // Add summary rows
+            com.itextpdf.text.Font summaryLabelFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Font summaryValueFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 10);
+            com.itextpdf.text.Font depositFont = new com.itextpdf.text.Font(summaryValueFont);
+            depositFont.setColor(new com.itextpdf.text.BaseColor(25, 135, 84)); // Green
+            com.itextpdf.text.Font withdrawalFont = new com.itextpdf.text.Font(summaryValueFont);
+            withdrawalFont.setColor(new com.itextpdf.text.BaseColor(220, 53, 69)); // Red
+            
+            DecimalFormat currencyFormat = new DecimalFormat("$#,##0.00");
+            
+            addAccountTableRow(summaryTable, "Total Transactions:", String.valueOf(totalTransactions), summaryLabelFont, summaryValueFont);
+            addAccountTableRow(summaryTable, "Total Deposits:", currencyFormat.format(totalDeposits), summaryLabelFont, depositFont);
+            addAccountTableRow(summaryTable, "Total Withdrawals:", currencyFormat.format(totalWithdrawals), summaryLabelFont, withdrawalFont);
+            addAccountTableRow(summaryTable, "Net Change:", currencyFormat.format(totalDeposits - totalWithdrawals), summaryLabelFont, summaryValueFont);
+            
+            document.add(summaryTable);
+            
+            // Add footer
+            document.add(new com.itextpdf.text.Paragraph("\n"));
+            com.itextpdf.text.Paragraph footer = new com.itextpdf.text.Paragraph(
+                "This is an official report from Kurdish-O-Banking. For any inquiries, please contact customer service.", 
+                smallFont);
+            footer.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            document.add(footer);
+            
+            // Close document
+            document.close();
+            
+            JOptionPane.showMessageDialog(this,
+                "Transaction data successfully exported to PDF:\n" + fileToSave.getAbsolutePath(),
+                "Export Successful",
+                JOptionPane.INFORMATION_MESSAGE);
+            
+            // Ask if user wants to open the PDF file
+            int openOption = JOptionPane.showConfirmDialog(
+                this,
+                "Would you like to open the PDF file now?",
+                "Open PDF",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (openOption == JOptionPane.YES_OPTION) {
+                // Open the PDF file using the default application
+                try {
+                    java.awt.Desktop.getDesktop().open(fileToSave);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "Could not open the PDF file. It has been saved to:\n" + fileToSave.getAbsolutePath(),
+                        "Open File Error",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error exporting data to PDF: " + e.getMessage(),
+                "Export Error",
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }}
+    }
+
+/**
+ * Helper method to add a row to the account information table
+ */
+private void addAccountTableRow(com.itextpdf.text.pdf.PdfPTable table, String label, String value, 
+                               com.itextpdf.text.Font labelFont, com.itextpdf.text.Font valueFont) {
+    com.itextpdf.text.pdf.PdfPCell labelCell = new com.itextpdf.text.pdf.PdfPCell(
+        new com.itextpdf.text.Phrase(label, labelFont));
+    labelCell.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+    labelCell.setPadding(5);
+    labelCell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_LEFT);
+    table.addCell(labelCell);
+    
+    com.itextpdf.text.pdf.PdfPCell valueCell = new com.itextpdf.text.pdf.PdfPCell(
+        new com.itextpdf.text.Phrase(value, valueFont));
+    valueCell.setBorder(com.itextpdf.text.Rectangle.NO_BORDER);
+    valueCell.setPadding(5);
+    valueCell.setHorizontalAlignment(com.itextpdf.text.Element.ALIGN_LEFT);
+    table.addCell(valueCell);
+}
+
+
+    
     
     /**
      * Custom rounded panel with background color

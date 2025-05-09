@@ -19,6 +19,12 @@
 
   <dependencies>
 
+  <dependency>
+    <groupId>com.itextpdf</groupId>
+    <artifactId>itextpdf</artifactId>
+    <version>5.5.13.3</version>
+</dependency>
+
   <!-- ZXing Core - For QR code generation and reading -->
 <dependency>
     <groupId>com.google.zxing</groupId>
