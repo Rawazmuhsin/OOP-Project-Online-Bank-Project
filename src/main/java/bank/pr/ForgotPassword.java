@@ -15,10 +15,14 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Base64;
 import java.util.Random;
 
 import javax.swing.BorderFactory;
@@ -415,6 +419,36 @@ public class ForgotPassword extends JFrame {
         return maskedName + "@" + domain;
     }
 
+    // Method to hash password using SHA-256 with salt - copied from SignUp class
+    private String hashPassword(String password) {
+        try {
+            // Generate a random salt
+            SecureRandom random = new SecureRandom();
+            byte[] salt = new byte[16];
+            random.nextBytes(salt);
+            
+            // Create MessageDigest instance for SHA-256
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            
+            // Add salt to digest
+            md.update(salt);
+            
+            // Get the hashed password
+            byte[] hashedPassword = md.digest(password.getBytes());
+            
+            // Store both salt and hashed password
+            StringBuilder sb = new StringBuilder();
+            sb.append(Base64.getEncoder().encodeToString(salt));
+            sb.append(":");
+            sb.append(Base64.getEncoder().encodeToString(hashedPassword));
+            
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private void resetPassword() {
         if (!otpVerified) {
             String enteredOTP = fields[1].getText().trim();
@@ -456,10 +490,20 @@ public class ForgotPassword extends JFrame {
             return;
         }
         
+        // Check password strength (minimum 6 characters)
+        if (newPassword.length() < 6) {
+            statusLabel.setText("Password must be at least 6 characters long");
+            statusLabel.setForeground(ERROR_COLOR);
+            return;
+        }
+        
         try (Connection conn = DatabaseConnection.getConnection()) {
+            // Hash the password before updating
+            String hashedPassword = hashPassword(newPassword);
+            
             String sql = "UPDATE accounts SET password = ? WHERE email = ?";
             PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, newPassword);
+            stmt.setString(1, hashedPassword);
             stmt.setString(2, userEmail);
             int rowsAffected = stmt.executeUpdate();
             
