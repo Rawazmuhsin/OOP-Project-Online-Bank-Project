@@ -377,145 +377,144 @@ public class Dashbord extends JFrame {
         add(mainContent, BorderLayout.CENTER);
     }
     
-    private void createDashboardPanel() {
-        dashboardContent = new JPanel();
-        dashboardContent.setLayout(new GridBagLayout());
-        dashboardContent.setBackground(BACKGROUND_COLOR);
-        
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.BOTH;
-        
-        // Account summary section
-        JPanel accountSummaryPanel = createSectionPanel("Account Summary");
-        accountSummaryPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
-        
-        // Create fancy account cards
-        JPanel checkingCard = createAccountCard("Checking Account", "****1234", SECONDARY_COLOR);
-        JPanel savingsCard = createAccountCard("Savings Account", "****5678", ACCENT_COLOR);
-        
-        accountSummaryPanel.add(checkingCard);
-        accountSummaryPanel.add(savingsCard);
-        
-        // Add account summary panel to dashboard
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        gbc.weightx = 1.0;
-        gbc.weighty = 0.4;
-        dashboardContent.add(accountSummaryPanel, gbc);
-        
-        // Recent activity section
-        JPanel recentActivityPanel = createSectionPanel("Recent Activity");
-        recentActivityPanel.setLayout(new BorderLayout(10, 10));
-        
-        // Create a panel to hold transaction information
-        JPanel transactionPanel = new JPanel();
-        transactionPanel.setLayout(new BoxLayout(transactionPanel, BoxLayout.Y_AXIS));
-        transactionPanel.setOpaque(false);
-        transactionPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        // Transaction statistics
-        JPanel statsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
-        statsPanel.setOpaque(false);
-        
-        // Transaction count panel
-        JPanel countPanel = new TransparentPanel();
-        countPanel.setLayout(new BoxLayout(countPanel, BoxLayout.Y_AXIS));
-        JLabel countTitle = new JLabel("Recent Transactions");
-        countTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        countTitle.setForeground(LIGHT_TEXT_COLOR);
-        countTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        transactionCountLabel = new JLabel("0");
-        transactionCountLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        transactionCountLabel.setForeground(TEXT_COLOR);
-        transactionCountLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        countPanel.add(countTitle);
-        countPanel.add(Box.createVerticalStrut(5));
-        countPanel.add(transactionCountLabel);
-        
-        // Last transaction panel
-        JPanel lastPanel = new TransparentPanel();
-        lastPanel.setLayout(new BoxLayout(lastPanel, BoxLayout.Y_AXIS));
-        JLabel lastTitle = new JLabel("Last Transaction");
-        lastTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        lastTitle.setForeground(LIGHT_TEXT_COLOR);
-        lastTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        lastTransactionLabel = new JLabel("No recent transactions");
-        lastTransactionLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        lastTransactionLabel.setForeground(TEXT_COLOR);
-        lastTransactionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        lastPanel.add(lastTitle);
-        lastPanel.add(Box.createVerticalStrut(5));
-        lastPanel.add(lastTransactionLabel);
-        
-        statsPanel.add(countPanel);
-        statsPanel.add(lastPanel);
-        
-        // Add view all transactions button
-        JButton viewAllButton = new JButton("View All Transactions");
-        viewAllButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        viewAllButton.setForeground(Color.WHITE);
-        viewAllButton.setBackground(SECONDARY_COLOR);
-        viewAllButton.setFocusPainted(false);
-        viewAllButton.addActionListener(e -> handleButtonClick("Transactions"));
-        viewAllButton.setOpaque(true);  
-        viewAllButton.setBorderPainted(false);  
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setOpaque(false);
-        buttonPanel.add(viewAllButton);
-        
-        transactionPanel.add(statsPanel);
-        transactionPanel.add(Box.createVerticalStrut(20));
-        transactionPanel.add(buttonPanel);
-        
-        recentActivityPanel.add(transactionPanel, BorderLayout.CENTER);
-        
-        // Quick actions section
-        JPanel quickActionsPanel = createSectionPanel("Quick Actions");
-        quickActionsPanel.setLayout(new GridLayout(2, 2, 15, 15));
-        quickActionsPanel.setBorder(BorderFactory.createCompoundBorder(
-            quickActionsPanel.getBorder(),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        
-        // Create action buttons
-        JButton depositButton = createActionButton("Deposit", "Quickly deposit funds");
-        JButton withdrawButton = createActionButton("Withdraw", "Withdraw your money");
-        JButton transferButton = createActionButton("Transfer", "Transfer between accounts");
-        JButton qrButton = createActionButton("QR Codes", "View your account QR codes");
-        
-        depositButton.addActionListener(e -> handleButtonClick("Deposit"));
-        withdrawButton.addActionListener(e -> handleButtonClick("Withdraw"));
-        transferButton.addActionListener(e -> handleButtonClick("Transfers"));
-        qrButton.addActionListener(e -> mainTabbedPane.setSelectedIndex(1));
-        
-        quickActionsPanel.add(depositButton);
-        quickActionsPanel.add(withdrawButton);
-        quickActionsPanel.add(transferButton);
-        quickActionsPanel.add(qrButton);
-        
-        // Add panels to dashboard
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0.6;
-        gbc.weighty = 0.6;
-        dashboardContent.add(recentActivityPanel, gbc);
-        
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
-        gbc.weightx = 0.4;
-        gbc.weighty = 0.6;
-        dashboardContent.add(quickActionsPanel, gbc);
-    }
+  // Modify the createDashboardPanel method to dynamically display account cards
+
+private void createDashboardPanel() {
+    dashboardContent = new JPanel();
+    dashboardContent.setLayout(new GridBagLayout());
+    dashboardContent.setBackground(BACKGROUND_COLOR);
     
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.insets = new Insets(10, 10, 10, 10);
+    gbc.fill = GridBagConstraints.BOTH;
+    
+    // Account summary section
+    JPanel accountSummaryPanel = createSectionPanel("Account Summary");
+    accountSummaryPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+    
+    // We will add account cards dynamically when user info is set
+    // The cards will be populated in loadAccountInfo()
+    
+    // Add account summary panel to dashboard
+    gbc.gridx = 0;
+    gbc.gridy = 0;
+    gbc.gridwidth = 2;
+    gbc.weightx = 1.0;
+    gbc.weighty = 0.4;
+    dashboardContent.add(accountSummaryPanel, gbc);
+    
+    // Recent activity section
+    JPanel recentActivityPanel = createSectionPanel("Recent Activity");
+    recentActivityPanel.setLayout(new BorderLayout(10, 10));
+    
+    // Create a panel to hold transaction information
+    JPanel transactionPanel = new JPanel();
+    transactionPanel.setLayout(new BoxLayout(transactionPanel, BoxLayout.Y_AXIS));
+    transactionPanel.setOpaque(false);
+    transactionPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    
+    // Transaction statistics
+    JPanel statsPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+    statsPanel.setOpaque(false);
+    
+    // Transaction count panel
+    JPanel countPanel = new TransparentPanel();
+    countPanel.setLayout(new BoxLayout(countPanel, BoxLayout.Y_AXIS));
+    JLabel countTitle = new JLabel("Recent Transactions");
+    countTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    countTitle.setForeground(LIGHT_TEXT_COLOR);
+    countTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    transactionCountLabel = new JLabel("0");
+    transactionCountLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+    transactionCountLabel.setForeground(TEXT_COLOR);
+    transactionCountLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    countPanel.add(countTitle);
+    countPanel.add(Box.createVerticalStrut(5));
+    countPanel.add(transactionCountLabel);
+    
+    // Last transaction panel
+    JPanel lastPanel = new TransparentPanel();
+    lastPanel.setLayout(new BoxLayout(lastPanel, BoxLayout.Y_AXIS));
+    JLabel lastTitle = new JLabel("Last Transaction");
+    lastTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    lastTitle.setForeground(LIGHT_TEXT_COLOR);
+    lastTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    lastTransactionLabel = new JLabel("No recent transactions");
+    lastTransactionLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+    lastTransactionLabel.setForeground(TEXT_COLOR);
+    lastTransactionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    
+    lastPanel.add(lastTitle);
+    lastPanel.add(Box.createVerticalStrut(5));
+    lastPanel.add(lastTransactionLabel);
+    
+    statsPanel.add(countPanel);
+    statsPanel.add(lastPanel);
+    
+    // Add view all transactions button
+    JButton viewAllButton = new JButton("View All Transactions");
+    viewAllButton.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    viewAllButton.setForeground(Color.WHITE);
+    viewAllButton.setBackground(SECONDARY_COLOR);
+    viewAllButton.setFocusPainted(false);
+    viewAllButton.addActionListener(e -> handleButtonClick("Transactions"));
+    viewAllButton.setOpaque(true);  
+    viewAllButton.setBorderPainted(false);  
+    
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    buttonPanel.setOpaque(false);
+    buttonPanel.add(viewAllButton);
+    
+    transactionPanel.add(statsPanel);
+    transactionPanel.add(Box.createVerticalStrut(20));
+    transactionPanel.add(buttonPanel);
+    
+    recentActivityPanel.add(transactionPanel, BorderLayout.CENTER);
+    
+    // Quick actions section
+    JPanel quickActionsPanel = createSectionPanel("Quick Actions");
+    quickActionsPanel.setLayout(new GridLayout(2, 2, 15, 15));
+    quickActionsPanel.setBorder(BorderFactory.createCompoundBorder(
+        quickActionsPanel.getBorder(),
+        BorderFactory.createEmptyBorder(15, 15, 15, 15)
+    ));
+    
+    // Create action buttons
+    JButton depositButton = createActionButton("Deposit", "Quickly deposit funds");
+    JButton withdrawButton = createActionButton("Withdraw", "Withdraw your money");
+    JButton transferButton = createActionButton("Transfer", "Transfer between accounts");
+    JButton qrButton = createActionButton("QR Codes", "View your account QR codes");
+    
+    depositButton.addActionListener(e -> handleButtonClick("Deposit"));
+    withdrawButton.addActionListener(e -> handleButtonClick("Withdraw"));
+    transferButton.addActionListener(e -> handleButtonClick("Transfers"));
+    qrButton.addActionListener(e -> mainTabbedPane.setSelectedIndex(1));
+    
+    quickActionsPanel.add(depositButton);
+    quickActionsPanel.add(withdrawButton);
+    quickActionsPanel.add(transferButton);
+    quickActionsPanel.add(qrButton);
+    
+    // Add panels to dashboard
+    gbc.gridx = 0;
+    gbc.gridy = 1;
+    gbc.gridwidth = 1;
+    gbc.weightx = 0.6;
+    gbc.weighty = 0.6;
+    dashboardContent.add(recentActivityPanel, gbc);
+    
+    gbc.gridx = 1;
+    gbc.gridy = 1;
+    gbc.gridwidth = 1;
+    gbc.weightx = 0.4;
+    gbc.weighty = 0.6;
+    dashboardContent.add(quickActionsPanel, gbc);
+}
+
+
     private JPanel createSectionPanel(String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
@@ -544,106 +543,94 @@ public class Dashbord extends JFrame {
         return panel;
     }
     
-    private JPanel createAccountCard(String accountType, String accountNumber, Color accentColor) {
-        // Create a panel with rounded corners
-        JPanel card = new RoundedPanel(15, accentColor);
-        card.setPreferredSize(new Dimension(320, 180));
-        card.setLayout(new BorderLayout());
-        card.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        
-        // Account type and number
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
-        headerPanel.setOpaque(false);
-        
-        JLabel typeLabel = new JLabel(accountType);
-        typeLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
-        typeLabel.setForeground(Color.WHITE);
-        
-        JLabel numberLabel = new JLabel(accountNumber);
-        numberLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        numberLabel.setForeground(new Color(240, 240, 240));
-        
-        headerPanel.add(typeLabel);
-        headerPanel.add(Box.createVerticalStrut(5));
-        headerPanel.add(numberLabel);
-        
-        // Balance section
-        JPanel balancePanel = new JPanel();
-        balancePanel.setLayout(new BoxLayout(balancePanel, BoxLayout.Y_AXIS));
-        balancePanel.setOpaque(false);
-        
-        JLabel balanceTitle = new JLabel("Current Balance");
-        balanceTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        balanceTitle.setForeground(new Color(240, 240, 240));
-        
-        JLabel balanceLabel = new JLabel("$0.00");
-        balanceLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        balanceLabel.setForeground(Color.WHITE);
-        
-        if (accountType.startsWith("Checking")) {
-            checkingBalanceLabel = balanceLabel;
-        } else if (accountType.startsWith("Savings")) {
-            savingsBalanceLabel = balanceLabel;
-        }
-        
-        balancePanel.add(balanceTitle);
-        balancePanel.add(Box.createVerticalStrut(5));
-        balancePanel.add(balanceLabel);
-        
-        // Account ID section
-        JPanel accountIdPanel = new JPanel();
-        accountIdPanel.setLayout(new BoxLayout(accountIdPanel, BoxLayout.Y_AXIS));
-        accountIdPanel.setOpaque(false);
-        
-        JLabel accountIdTitle = new JLabel("Account ID");
-        accountIdTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        accountIdTitle.setForeground(new Color(240, 240, 240));
-        
-        JLabel accountIdLabel = new JLabel("--");
-        accountIdLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        accountIdLabel.setForeground(Color.WHITE);
-        
-        if (accountType.startsWith("Checking")) {
-            checkingAccountIdLabel = accountIdLabel;
-        } else if (accountType.startsWith("Savings")) {
-            savingsAccountIdLabel = accountIdLabel;
-        }
-        
-        accountIdPanel.add(accountIdTitle);
-        accountIdPanel.add(Box.createVerticalStrut(5));
-        accountIdPanel.add(accountIdLabel);
-        
-        // Footer with action buttons
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        footerPanel.setOpaque(false);
-        
-        JButton depositButton = new TransparentButton("Deposit");
-        depositButton.setForeground(Color.WHITE);
-        depositButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        depositButton.addActionListener(e -> handleButtonClick("Deposit"));
-        
-        JButton withdrawButton = new TransparentButton("Withdraw");
-        withdrawButton.setForeground(Color.WHITE);
-        withdrawButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        withdrawButton.addActionListener(e -> handleButtonClick("Withdraw"));
-        
-        footerPanel.add(depositButton);
-        footerPanel.add(withdrawButton);
-        
-        // Add components to card
-        card.add(headerPanel, BorderLayout.NORTH);
-        
-        JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        centerPanel.setOpaque(false);
-        centerPanel.add(balancePanel);
-        centerPanel.add(accountIdPanel);
-        
-        card.add(centerPanel, BorderLayout.CENTER);
-        card.add(footerPanel, BorderLayout.SOUTH);
-        
-        return card;
-    }
+   private JPanel createAccountCard(String accountType, String accountNumber, Color accentColor) {
+    // Create a panel with rounded corners
+    JPanel card = new RoundedPanel(15, accentColor);
+    card.setPreferredSize(new Dimension(320, 180));
+    card.setLayout(new BorderLayout());
+    card.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+    
+    // Account type and number
+    JPanel headerPanel = new JPanel();
+    headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+    headerPanel.setOpaque(false);
+    
+    JLabel typeLabel = new JLabel(accountType);
+    typeLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
+    typeLabel.setForeground(Color.WHITE);
+    
+    JLabel numberLabel = new JLabel(accountNumber);
+    numberLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    numberLabel.setForeground(new Color(240, 240, 240));
+    
+    headerPanel.add(typeLabel);
+    headerPanel.add(Box.createVerticalStrut(5));
+    headerPanel.add(numberLabel);
+    
+    // Balance section
+    JPanel balancePanel = new JPanel();
+    balancePanel.setLayout(new BoxLayout(balancePanel, BoxLayout.Y_AXIS));
+    balancePanel.setOpaque(false);
+    
+    JLabel balanceTitle = new JLabel("Current Balance");
+    balanceTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    balanceTitle.setForeground(new Color(240, 240, 240));
+    
+    JLabel balanceLabel = new JLabel("$0.00");
+    balanceLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+    balanceLabel.setForeground(Color.WHITE);
+    
+    balancePanel.add(balanceTitle);
+    balancePanel.add(Box.createVerticalStrut(5));
+    balancePanel.add(balanceLabel);
+    
+    // Account ID section
+    JPanel accountIdPanel = new JPanel();
+    accountIdPanel.setLayout(new BoxLayout(accountIdPanel, BoxLayout.Y_AXIS));
+    accountIdPanel.setOpaque(false);
+    
+    JLabel accountIdTitle = new JLabel("Account ID");
+    accountIdTitle.setFont(new Font("SansSerif", Font.PLAIN, 14));
+    accountIdTitle.setForeground(new Color(240, 240, 240));
+    
+    JLabel accountIdLabel = new JLabel("--");
+    accountIdLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+    accountIdLabel.setForeground(Color.WHITE);
+    
+    accountIdPanel.add(accountIdTitle);
+    accountIdPanel.add(Box.createVerticalStrut(5));
+    accountIdPanel.add(accountIdLabel);
+    
+    // Footer with action buttons
+    JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    footerPanel.setOpaque(false);
+    
+    JButton depositButton = new TransparentButton("Deposit");
+    depositButton.setForeground(Color.WHITE);
+    depositButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
+    depositButton.addActionListener(e -> handleButtonClick("Deposit"));
+    
+    JButton withdrawButton = new TransparentButton("Withdraw");
+    withdrawButton.setForeground(Color.WHITE);
+    withdrawButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
+    withdrawButton.addActionListener(e -> handleButtonClick("Withdraw"));
+    
+    footerPanel.add(depositButton);
+    footerPanel.add(withdrawButton);
+    
+    // Add components to card
+    card.add(headerPanel, BorderLayout.NORTH);
+    
+    JPanel centerPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+    centerPanel.setOpaque(false);
+    centerPanel.add(balancePanel);
+    centerPanel.add(accountIdPanel);
+    
+    card.add(centerPanel, BorderLayout.CENTER);
+    card.add(footerPanel, BorderLayout.SOUTH);
+    
+    return card;
+}
     
     private JButton createActionButton(String title, String description) {
         JButton button = new JButton();
@@ -766,36 +753,135 @@ public class Dashbord extends JFrame {
     }
     
     private void loadAccountInfo() {
-        try (Connection conn = DatabaseConnection.getConnection()) {
-            String query = "SELECT account_id, account_type, balance FROM accounts WHERE account_id = ? OR username = ?";
+    try (Connection conn = DatabaseConnection.getConnection()) {
+        // Get the account summary panel
+        JPanel accountSummaryPanel = null;
+        Component[] components = dashboardContent.getComponents();
+        for (Component component : components) {
+            if (component instanceof JPanel && ((JPanel) component).getComponent(0) instanceof JPanel) {
+                JPanel titleBar = (JPanel) ((JPanel) component).getComponent(0);
+                if (titleBar.getComponent(0) instanceof JLabel) {
+                    JLabel titleLabel = (JLabel) titleBar.getComponent(0);
+                    if ("Account Summary".equals(titleLabel.getText())) {
+                        accountSummaryPanel = (JPanel) component;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (accountSummaryPanel != null) {
+            // Clear existing account cards (except the title panel)
+            accountSummaryPanel.removeAll();
+            // Re-add the title bar
+            accountSummaryPanel.setLayout(new BorderLayout());
+            JPanel titleBar = createSectionTitleBar("Account Summary");
+            accountSummaryPanel.add(titleBar, BorderLayout.NORTH);
+            
+            // Create a panel for cards
+            JPanel cardsPanel = new JPanel();
+            cardsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            cardsPanel.setOpaque(false);
+            accountSummaryPanel.add(cardsPanel, BorderLayout.CENTER);
+            
+            // Query to get account information
+            String query = "SELECT account_id, account_type, balance FROM accounts WHERE username = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, userId);
-            stmt.setString(2, userName);
+            stmt.setString(1, userName);
             
             ResultSet rs = stmt.executeQuery();
+            boolean hasAccounts = false;
             
             while (rs.next()) {
+                hasAccounts = true;
                 String accountType = rs.getString("account_type");
                 double balance = rs.getDouble("balance");
                 int accountId = rs.getInt("account_id");
                 
-                if ("Checking".equals(accountType)) {
-                    checkingBalanceLabel.setText(String.format("$%.2f", balance));
-                    checkingAccountIdLabel.setText(String.valueOf(accountId));
-                } else if ("Savings".equals(accountType)) {
-                    savingsBalanceLabel.setText(String.format("$%.2f", balance));
-                    savingsAccountIdLabel.setText(String.valueOf(accountId));
+                // Choose color based on account type
+                Color cardColor = accountType.equals("Checking") ? SECONDARY_COLOR : ACCENT_COLOR;
+                
+                // Create account card with correct info
+                JPanel accountCard = createAccountCard(accountType + " Account", 
+                                                      "****" + String.valueOf(accountId).substring(Math.max(0, String.valueOf(accountId).length() - 4)), 
+                                                      cardColor);
+                
+                // Store reference to account label for later updates
+                for (Component comp : accountCard.getComponents()) {
+                    if (comp instanceof JPanel) {
+                        for (Component innerComp : ((JPanel) comp).getComponents()) {
+                            if (innerComp instanceof JPanel) {
+                                for (Component deepComp : ((JPanel) innerComp).getComponents()) {
+                                    if (deepComp instanceof JLabel) {
+                                        JLabel label = (JLabel) deepComp;
+                                        if (label.getText().startsWith("$")) {
+                                            // This is a balance label
+                                            label.setText(String.format("$%.2f", balance));
+                                            if (accountType.equals("Checking")) {
+                                                checkingBalanceLabel = label;
+                                            } else if (accountType.equals("Savings")) {
+                                                savingsBalanceLabel = label;
+                                            }
+                                        } else if (label.getText().equals("--")) {
+                                            // This is an account ID label
+                                            label.setText(String.valueOf(accountId));
+                                            if (accountType.equals("Checking")) {
+                                                checkingAccountIdLabel = label;
+                                            } else if (accountType.equals("Savings")) {
+                                                savingsAccountIdLabel = label;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                
+                cardsPanel.add(accountCard);
             }
             
-        } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this,
-                "Error loading account information: " + ex.getMessage(),
-                "Database Error",
-                JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace();
+            // If no accounts were found, display a message
+            if (!hasAccounts) {
+                JLabel noAccountsLabel = new JLabel("No accounts found for this user.");
+                noAccountsLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+                noAccountsLabel.setForeground(TEXT_COLOR);
+                cardsPanel.add(noAccountsLabel);
+            }
+            
+            // Refresh UI
+            accountSummaryPanel.revalidate();
+            accountSummaryPanel.repaint();
+            dashboardContent.revalidate();
+            dashboardContent.repaint();
         }
+        
+    } catch (SQLException ex) {
+        JOptionPane.showMessageDialog(this,
+            "Error loading account information: " + ex.getMessage(),
+            "Database Error",
+            JOptionPane.ERROR_MESSAGE);
+        ex.printStackTrace();
     }
+}
+
+// Helper method to create just the title bar portion of a section panel
+private JPanel createSectionTitleBar(String title) {
+    JPanel titleBar = new JPanel(new BorderLayout());
+    titleBar.setBackground(CARD_COLOR);
+    titleBar.setBorder(BorderFactory.createCompoundBorder(
+        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(230, 230, 230)),
+        BorderFactory.createEmptyBorder(10, 15, 10, 15)
+    ));
+    
+    JLabel titleLabel = new JLabel(title);
+    titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+    titleLabel.setForeground(TEXT_COLOR);
+    
+    titleBar.add(titleLabel, BorderLayout.WEST);
+    
+    return titleBar;
+}
     
     private void loadTransactionInfo() {
         try (Connection conn = DatabaseConnection.getConnection()) {
